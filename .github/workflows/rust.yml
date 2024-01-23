@@ -1,4 +1,4 @@
-name: NightlyBuild
+name: Build
 
 on:
   push:
@@ -16,13 +16,21 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+
     - name: Build
       run: cargo build --verbose --release --target=i686-pc-windows-msvc
-    - name: Run tests
-      run: cargo test --verbose
+
+    # We don't have any tests for now
+    # - name: Run tests
+    #   run: cargo test --verbose
+
+    - name: Rename .dll to .asi
+      shell: pwsh
+      run: |
+        Rename-Item 'target/i686-pc-windows-msvc/release/chess_titans_rtx.dll' -NewName 'chess_titans_rtx.asi' -Force
 
     - name: Archive Build
       uses: actions/upload-artifact@v4.2.0
       with:
-        name: chess-titans-rtx-asi-nightly
-        path: target/i686-pc-windows-msvc/release
+        name: chess-titans-rtx-asi
+        path: target/i686-pc-windows-msvc/release/chess_titans_rtx.dll
