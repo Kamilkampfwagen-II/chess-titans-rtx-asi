@@ -18,15 +18,17 @@ fn patch_game(patch_set: &[Patch])
     for patch in patch_set.iter() {        
         let patch_address = (h_parent_module.0 + patch.offset as isize) as *mut u8;
 
-        // Disable virtual page protection
         let mut old_protect: PAGE_PROTECTION_FLAGS = Default::default();
-        unsafe { VirtualProtect(patch_address as *const c_void, size_of::<u8>(), PAGE_EXECUTE_READWRITE, &mut old_protect).expect("Failed to disable page protection!") };
+        unsafe {
+            // Disable virtual page protection
+            VirtualProtect(patch_address as *const c_void, size_of::<u8>(), PAGE_EXECUTE_READWRITE, &mut old_protect).expect("Failed to disable page protection!");
 
-        // Write the individual bytes
-        unsafe { *patch_address = patch.new };
+            // Write the individual bytes
+            *patch_address = patch.new;
 
-        // Restore virtual page protection
-        unsafe { VirtualProtect(patch_address as *const c_void, size_of::<u8>(), old_protect, &mut old_protect).expect("Failed to restore page protection!") };
+            // Restore virtual page protection
+            VirtualProtect(patch_address as *const c_void, size_of::<u8>(), old_protect, &mut old_protect).expect("Failed to restore page protection!");
+        };
     }
 }
 
