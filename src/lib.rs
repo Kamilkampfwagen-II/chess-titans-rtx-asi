@@ -78,7 +78,6 @@ fn main() {
 
     println!("Welcome to Chess Titans RTX");
 
-    apply_and_report(&GRAPHICS_LEVEL_3, false,  "GRAPHICS_LEVEL_3");
     apply_and_report(&CONSTANT_TICK,    true,   "Constant Tick - by AdamPlayer");
     apply_and_report(&FOV,              true,   "Increased FOV - by AdamPlayer");
 
