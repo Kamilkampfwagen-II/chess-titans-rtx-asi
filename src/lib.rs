@@ -51,16 +51,21 @@ fn apply_patch(patch_set: &[Patch], verify: bool) -> Result<(), Box<dyn Error>> 
 }
 
 
+fn apply_and_report(patch_set: &[Patch], verify: bool, ok_message: &str) {
+    let result = apply_patch(patch_set, verify);
+    match result {
+        Ok(()) => println!("[OK] - Applied patch: {}", ok_message),
+        Err(error) => println!("[FAIL] - {}", error),
+    }
+}
+
+
 fn settings_watcher() {
     let h_parent_module = unsafe { GetModuleHandleW(None).unwrap() };
     let patch_address = (h_parent_module.0 + GRAPHICS_LEVEL_3.get(0).unwrap().offset as isize) as *mut u8;
     loop {
         if unsafe { *patch_address } != GRAPHICS_LEVEL_3.get(0).unwrap().new {
-            let result = apply_patch(&GRAPHICS_LEVEL_3, false);
-            match result {
-                Ok(()) => println!("[OK] - Revert graphics level to 3"),
-                Err(error) => println!("[FAIL] - {}", error),
-            }
+            apply_and_report(&GRAPHICS_LEVEL_3, false, "[OK] - Revert graphics level to 3")
         }
         thread::sleep(Duration::from_millis(1));
     }
@@ -73,23 +78,9 @@ fn main() {
 
     println!("Welcome to Chess Titans RTX");
 
-    let result = apply_patch(&GRAPHICS_LEVEL_3, false);
-    match result {
-        Ok(()) => println!("[OK] - Applied patch: GRAPHICS_LEVEL_3"),
-        Err(error) => println!("[FAIL] - {}", error),
-    }
-
-    let result = apply_patch(&CONSTANT_TICK, true);
-    match result {
-        Ok(()) => println!("[OK] - Applied patch: CONSTANT_TICK - by AdamPlayer"),
-        Err(error) => println!("[FAIL] - {}", error),
-    }
-
-    let result = apply_patch(&FOV, true);
-    match result {
-        Ok(()) => println!("[OK] - Applied patch: FOV - by AdamPlayer"),
-        Err(error) => println!("[FAIL] - {}", error),
-    }
+    apply_and_report(&GRAPHICS_LEVEL_3, false,  "GRAPHICS_LEVEL_3");
+    apply_and_report(&CONSTANT_TICK,    true,   "Constant Tick - by AdamPlayer");
+    apply_and_report(&FOV,              true,   "Increased FOV - by AdamPlayer");
 
     // Spawn a new thread to let the game continue running
     thread::spawn(settings_watcher);
