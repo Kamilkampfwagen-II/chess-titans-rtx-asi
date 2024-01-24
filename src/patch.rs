@@ -10,17 +10,20 @@ pub mod patch {
 
 
     #[derive(Debug)]
+
     pub enum PatchError {
-        ByteMismatch,
+        ByteMismatch(u32, u8, u8),
     }
     
     impl fmt::Display for PatchError {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
             match self {
-                PatchError::ByteMismatch => write!(f, "Byte at target offset does not match the original byte in the patch. The patch may be intended for a different executable."),
+                PatchError::ByteMismatch(offset, expected, found) => 
+                    write!(f, "Byte {:#x} at target offset {:#x} does not match the original byte {:#x} in the patch. The patch may be intended for a different executable.", found, offset, expected),
             }
         }
     }
     
     impl Error for PatchError {}
+    
 }
