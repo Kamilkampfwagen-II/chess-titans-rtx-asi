@@ -21,4 +21,8 @@ pub mod patches {
         Patch {offset: 0x0013100E, org: 0xF0, new: 0xB4},
         Patch {offset: 0x0013100F, org: 0x41, new: 0x42},
     ];
+
+    pub const GRAPHICS_LEVEL_3: [Patch; 1] = [
+        Patch {offset: 0x131134, org: 0x0, new: 0x2},
+    ];
 }

@@ -1,8 +1,10 @@
 mod patches;
-use patches::patches::{Patch, CONSTANT_TICK, FOV};
+use patches::patches::*;
 
 use std::ffi::c_void;
 use std::mem::size_of;
+use std::thread;
+use std::time::Duration;
 
 use windows::Win32::Foundation::{BOOL, HANDLE};
 use windows::Win32::System::Console::AllocConsole;
@@ -11,7 +13,7 @@ use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::System::SystemServices::{DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH, DLL_THREAD_ATTACH, DLL_THREAD_DETACH};
 
 
-fn patch_game(patch_set: &[Patch])
+fn apply_patch(patch_set: &[Patch])
 {
     let h_parent_module = unsafe { GetModuleHandleW(None).unwrap() };
 
@@ -32,17 +34,37 @@ fn patch_game(patch_set: &[Patch])
     }
 }
 
+
+fn settings_watcher() {
+    let h_parent_module = unsafe { GetModuleHandleW(None).unwrap() };
+    let patch_address = (h_parent_module.0 + GRAPHICS_LEVEL_3.get(0).unwrap().offset as isize) as *mut u8;
+    loop {
+        if unsafe { *patch_address } != GRAPHICS_LEVEL_3.get(0).unwrap().new {
+            apply_patch(&GRAPHICS_LEVEL_3);
+            println!("[OK] - Revert graphics level to 3");
+        }
+        thread::sleep(Duration::from_millis(1));
+    }
+}
+
+
 fn main() {
     // Attach a console so we can print stuff
     unsafe { AllocConsole().expect("Failed to allocate console!") }
 
     println!("Welcome to Chess Titans RTX");
 
-    println!("Patching: CONSTANT_TICK..");
-    patch_game(&CONSTANT_TICK);
+    apply_patch(&GRAPHICS_LEVEL_3);
+    println!("[OK] - Applied patch: GRAPHICS_LEVEL_3");
 
-    println!("Patching: FOV..");
-    patch_game(&FOV);
+    apply_patch(&CONSTANT_TICK);
+    println!("[OK] - Applied patch: CONSTANT_TICK - by AdamPlayer");
+
+    apply_patch(&FOV);
+    println!("[OK] - Applied patch: FOV - by AdamPlayer");
+
+    // Spawn a new thread to let the game continue running
+    thread::spawn(settings_watcher);
 }
 
 
