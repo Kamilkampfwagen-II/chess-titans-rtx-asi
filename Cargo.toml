@@ -21,7 +21,8 @@ features = [
 
 [profile.release]
 strip = true
-opt-level = 3
+opt-level = 2
 lto = true
-codegen-units = 1
+incremental = false
+codegen-units = 16
 panic = "abort"

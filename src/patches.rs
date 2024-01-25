@@ -1,9 +1,5 @@
 pub mod patches {
-    pub struct Patch {
-        pub offset: u32,
-        pub org: u8,
-        pub new: u8
-    }
+    use crate::patch::patch::*;
 
     // by https://github.com/adamplayer
     pub const CONSTANT_TICK: [Patch; 6] = [
@@ -20,5 +16,9 @@ pub mod patches {
         Patch {offset: 0x0013100A, org: 0xBE, new: 0x20},
         Patch {offset: 0x0013100E, org: 0xF0, new: 0xB4},
         Patch {offset: 0x0013100F, org: 0x41, new: 0x42},
+    ];
+
+    pub const GRAPHICS_LEVEL_3: [Patch; 1] = [
+        Patch {offset: 0x131134, org: 0x0, new: 0x2},
     ];
 }
