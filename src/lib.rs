@@ -65,7 +65,7 @@ fn settings_watcher() {
     let patch_address = (h_parent_module.0 + GRAPHICS_LEVEL_3.get(0).unwrap().offset as isize) as *mut u8;
     loop {
         if unsafe { *patch_address } != GRAPHICS_LEVEL_3.get(0).unwrap().new {
-            apply_and_report(&GRAPHICS_LEVEL_3, false, "[OK] - Revert graphics level to 3")
+            apply_and_report(&GRAPHICS_LEVEL_3, false, "Revert graphics level to 3")
         }
         thread::sleep(Duration::from_millis(1));
     }
