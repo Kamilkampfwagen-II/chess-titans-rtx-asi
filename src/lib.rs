@@ -79,7 +79,8 @@ fn main() {
     println!("Welcome to Chess Titans RTX");
 
     apply_and_report(&CONSTANT_TICK,    true,   "Constant Tick - by AdamPlayer");
-    apply_and_report(&FOV,              true,   "Increased FOV - by AdamPlayer");
+    // We don't have a config system right now, increased FOV may not be something everyone enjoys
+    // apply_and_report(&FOV,              true,   "Increased FOV - by AdamPlayer");
 
     // Spawn a new thread to let the game continue running
     thread::spawn(settings_watcher);
