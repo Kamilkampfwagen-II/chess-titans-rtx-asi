@@ -51,10 +51,10 @@ fn apply_patch(patch_set: &[Patch], verify: bool) -> Result<(), Box<dyn Error>> 
 }
 
 
-fn apply_and_report(patch_set: &[Patch], verify: bool, ok_message: &str) {
+fn apply_and_report(patch_set: &[Patch], verify: bool, ok_msg: &str) {
     let result = apply_patch(patch_set, verify);
     match result {
-        Ok(()) => println!("[OK] - Applied patch: {}", ok_message),
+        Ok(()) => println!("[OK] - Applied patch: {}", ok_msg),
         Err(error) => println!("[FAIL] - {}", error),
     }
 }
