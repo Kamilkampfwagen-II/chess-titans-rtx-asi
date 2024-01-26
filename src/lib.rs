@@ -1,72 +1,88 @@
 mod patch;
-use patch::patch::*;
 
 mod patches;
 use patches::patches::*;
 
-use std::ffi::c_void;
-use std::mem::size_of;
+mod helper;
+use helper::helper::*;
+
 use std::thread;
 use std::time::Duration;
-use std::error::Error;
 
-use windows::Win32::Foundation::{BOOL, HANDLE};
+use windows::Win32::Foundation::{BOOL, HANDLE, HWND, LPARAM};
 use windows::Win32::System::Console::AllocConsole;
-use windows::Win32::System::Memory::{PAGE_PROTECTION_FLAGS, VirtualProtect, PAGE_EXECUTE_READWRITE};
-use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::System::SystemServices::{DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH, DLL_THREAD_ATTACH, DLL_THREAD_DETACH};
+use windows::Win32::System::Threading::GetCurrentProcessId;
+use windows::Win32::UI::WindowsAndMessaging::{GetWindowThreadProcessId, EnumWindows, ShowWindow, SW_RESTORE};
 
 
-fn apply_patch(patch_set: &[Patch], verify: bool) -> Result<(), Box<dyn Error>> {
-    let h_parent_module = unsafe { GetModuleHandleW(None)? };
+#[no_mangle]
+extern "system" fn enum_windows_proc(hwnd: HWND, l_param: LPARAM) -> BOOL {
+    let mut pid: u32 = 0;
+    unsafe { GetWindowThreadProcessId(hwnd, Some(&mut pid as *mut u32)) };
+    if pid != unsafe { GetCurrentProcessId() } { return BOOL(1); }
 
-    if verify {
-        for patch in patch_set.iter() {        
-            let patch_address = (h_parent_module.0 + patch.offset as isize) as *mut u8;
-            let target_byte = unsafe { *patch_address };
+    let wclass_name = get_window_class_name(hwnd);
+    if wclass_name != "ChessWindowC" { return  BOOL(1); }
 
-            if !verify || target_byte== patch.org { continue; }
-
-            return Err( Box::new(PatchError::ByteMismatch(patch.offset, patch.org, target_byte)) );
-        }
-    }
-
-    for patch in patch_set.iter() {        
-        let patch_address = (h_parent_module.0 + patch.offset as isize) as *mut u8;
-
-        let mut old_protect: PAGE_PROTECTION_FLAGS = Default::default();
-        unsafe {
-            // Disable virtual page protection
-            VirtualProtect(patch_address as *const c_void, size_of::<u8>(), PAGE_EXECUTE_READWRITE, &mut old_protect)?;
-
-            // Write the individual bytes
-            *patch_address = patch.new;
-
-            // Restore virtual page protection
-            VirtualProtect(patch_address as *const c_void, size_of::<u8>(), old_protect, &mut old_protect)?;
-        };
-    }
-
-    Ok(())
+    // This is the window we're looking for
+    unsafe { *(l_param.0 as *mut HWND) = hwnd };
+    return BOOL(0);
 }
 
 
-fn apply_and_report(patch_set: &[Patch], verify: bool, ok_msg: &str) {
-    let result = apply_patch(patch_set, verify);
-    match result {
-        Ok(()) => println!("[OK] - Applied patch: {}", ok_msg),
-        Err(error) => println!("[FAIL] - {}", error),
+fn window_watcher() {
+    let mut hwnd: HWND = Default::default();
+    loop {
+        let _ = unsafe { EnumWindows(Some(enum_windows_proc),  LPARAM(&mut hwnd as *mut HWND as isize)) }; // This always returns Err() for some reason, so we ignore it
+        if hwnd != Default::default() { break; }
     }
+    println!("[OK] - Found Chess Titans window with handle {}", hwnd.0);
+    
+    disable_maximize(hwnd);
+    println!("[OK] - Disabled maximize button"); // Also un-maximizes the window
+
+    make_borderless(hwnd);
+    println!("[OK] - Enabled borderless window");
+    
+    let _ = move_window(hwnd);
+    println!("[OK] - Move window top left");
 }
 
 
 fn settings_watcher() {
-    let h_parent_module = unsafe { GetModuleHandleW(None).unwrap() };
-    let patch_address = (h_parent_module.0 + GRAPHICS_LEVEL_3.get(0).unwrap().offset as isize) as *mut u8;
+    let patch_address = get_address_by_offset(GRAPHICS_LEVEL_3.get(0).unwrap().offset);
+
     loop {
-        if unsafe { *patch_address } != GRAPHICS_LEVEL_3.get(0).unwrap().new {
+        if unsafe { read_from::<u8>(patch_address) } != GRAPHICS_LEVEL_3.get(0).unwrap().new {
             apply_and_report(&GRAPHICS_LEVEL_3, false, "Revert graphics level to 3")
         }
+        thread::sleep(Duration::from_millis(1));
+    }
+}
+
+
+fn res_watcher() { // This is incredibly stupid, but I have no other solution for now
+    const WIDTH_OFFSET: u32 = 0x131154;
+    const HEIGHT_OFFSET: u32 = 0x131158;
+
+    let width_address = get_address_by_offset(WIDTH_OFFSET);
+    let height_address = get_address_by_offset(HEIGHT_OFFSET);
+
+    let mut i = 0;
+    loop {
+        if unsafe { read_from::<u32>(width_address) } != 1920 {
+            i = 0;
+            let _ = unsafe { write_to(width_address , 1920) };
+        }
+
+        if unsafe { read_from::<u32>(height_address) } != 1080 {
+            i = 0;
+            let _ = unsafe { write_to(height_address, 1080) };
+        }
+
+        i += 1;
+        if i > 1000 { break; } // No need to continue the loop after the window initialization
         thread::sleep(Duration::from_millis(1));
     }
 }
@@ -82,8 +98,10 @@ fn main() {
     // We don't have a config system right now, increased FOV may not be something everyone enjoys
     // apply_and_report(&FOV,              true,   "Increased FOV - by AdamPlayer");
 
-    // Spawn a new thread to let the game continue running
+    // Continue with new threads to unblock the main thread
+    thread::spawn(window_watcher);
     thread::spawn(settings_watcher);
+    thread::spawn(res_watcher);
 }
 
 
