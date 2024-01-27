@@ -9,6 +9,9 @@ edition = "2021"
 name = "chess_titans_rtx"
 crate-type = ["cdylib"]
 
+[dependencies]
+rust-ini = "0.20.0"
+
 [dependencies.windows]
 version = "0.52.0"
 features = [
