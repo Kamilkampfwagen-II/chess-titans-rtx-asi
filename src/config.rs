@@ -96,7 +96,7 @@ pub mod config {
                 Value::U32(i)   => value = Value::U32(value_str.parse::<u32>().unwrap_or(i)  ),
                 Value::F32(i)   => value = Value::F32(value_str.parse::<f32>().unwrap_or(i)  ),
                 Value::Bool(i) => value = Value::Bool(value_str.parse::<bool>().unwrap_or(i)),
-                Value::String(_)        => value = Value::String(value_str.to_owned()),
+                Value::String(_)     => value = Value::String(value_str.to_owned()),
             }
 
             config.insert(k.to_string(), value);
