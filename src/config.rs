@@ -1,4 +1,4 @@
-pub mod config {
+pub mod conf {
     use std::collections::HashMap;
     use ini::Ini;
 
