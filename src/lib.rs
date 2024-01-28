@@ -122,7 +122,9 @@ fn main() {
     if config_0.get("settings_override").unwrap().unwrap() {
         thread::spawn(settings_watcher);
     }
-    thread::spawn(move || res_watcher(&*config_2)); 
+    if config_0.get("fullscreen").unwrap().unwrap() {
+        thread::spawn(move || res_watcher(&*config_2)); 
+    }
     thread::spawn(move || window_watcher(&*config_1));
 }
 
