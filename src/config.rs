@@ -13,13 +13,13 @@ pub mod config {
     }
 
     pub trait Unwrap<T> {
-        fn unwrap(self) -> T;
+        fn unwrap(&self) -> T;
     }
 
     impl Unwrap<i32> for Value {
-        fn unwrap(self) -> i32 {
+        fn unwrap(&self) -> i32 {
             if let Value::I32(val) = self {
-                val
+                *val
             } else {
                 panic!("Expected i32, got a different type")
             }
@@ -27,9 +27,9 @@ pub mod config {
     }
 
     impl Unwrap<u32> for Value {
-        fn unwrap(self) -> u32 {
+        fn unwrap(&self) -> u32 {
             if let Value::U32(val) = self {
-                val
+                *val
             } else {
                 panic!("Expected u32, got a different type")
             }
@@ -37,9 +37,9 @@ pub mod config {
     }
 
     impl Unwrap<f32> for Value {
-        fn unwrap(self) -> f32 {
+        fn unwrap(&self) -> f32 {
             if let Value::F32(val) = self {
-                val
+                *val
             } else {
                 panic!("Expected f32, got a different type")
             }
@@ -47,9 +47,9 @@ pub mod config {
     }
 
     impl Unwrap<bool> for Value {
-        fn unwrap(self) -> bool {
+        fn unwrap(&self) -> bool {
             if let Value::Bool(val) = self {
-                val
+                *val
             } else {
                 panic!("Expected bool, got a different type")
             }
@@ -57,9 +57,9 @@ pub mod config {
     }
 
     impl Unwrap<String> for Value {
-        fn unwrap(self) -> String {
+        fn unwrap(&self) -> String {
             if let Value::String(val) = self {
-                val
+                val.to_string()
             } else {
                 panic!("Expected String, got a different type")
             }
