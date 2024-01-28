@@ -74,7 +74,7 @@ fn res_watcher(config: &HashMap<String, conf::Value>) { // This is incredibly st
     let width_address = get_address_by_offset(WIDTH_OFFSET);
     let height_address = get_address_by_offset(HEIGHT_OFFSET);
 
-    let width = config.get("witdh").unwrap().unwrap();
+    let width = config.get("width").unwrap().unwrap();
     let height = config.get("height").unwrap().unwrap();
 
     let mut i = 0;
