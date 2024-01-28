@@ -3,6 +3,7 @@ pub mod conf {
     use ini::Ini;
 
 
+    #[allow(dead_code)]
     #[derive(Debug)]
     pub enum Value {
         I32(i32),
