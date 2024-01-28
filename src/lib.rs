@@ -77,7 +77,7 @@ fn res_watcher(config: &HashMap<String, conf::Value>) { // This is incredibly st
     let mut width = config.get("width").unwrap().unwrap();
     let mut height = config.get("height").unwrap().unwrap();
 
-    if width <= 0 || height <= 0 { 
+    if width == 0 || height == 0 { 
         let res = get_display_res().expect("Don't you have a monitor??");
         width = res[0];
         height = res[1];
