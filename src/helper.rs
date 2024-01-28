@@ -2,13 +2,14 @@ pub mod helper {
     use std::error;
     use std::ffi::c_void;
     use std::mem::size_of;
+    use std::ptr::null;
     
-    use windows::core;
+    use windows::core::{self, PCWSTR};
     use windows::Win32::Foundation::HWND;
+    use windows::Win32::Graphics::Gdi::{DISPLAY_DEVICEW, EnumDisplayDevicesW, GetDeviceCaps, CreateDCW, HORZRES, VERTRES};
     use windows::Win32::System::Memory::{PAGE_PROTECTION_FLAGS, VirtualProtect, PAGE_EXECUTE_READWRITE};
     use windows::Win32::System::LibraryLoader::GetModuleHandleW;
-    use windows::Win32::UI::WindowsAndMessaging::{GetClassNameA, GetWindowLongA, GetWindowTextLengthW, SetWindowLongA, SetWindowPos, WS_BORDER, WS_CAPTION, WS_THICKFRAME, WS_MINIMIZE, WS_MAXIMIZE, WS_SYSMENU, WS_MAXIMIZEBOX, HWND_NOTOPMOST, HWND_BOTTOM, GWL_STYLE, SW_RESTORE, ShowWindow};
-    use windows::Win32::UI::WindowsAndMessaging::SET_WINDOW_POS_FLAGS;
+    use windows::Win32::UI::WindowsAndMessaging::{SET_WINDOW_POS_FLAGS, GetClassNameA, GetWindowLongA, GetWindowTextLengthW, SetWindowLongA, ShowWindow, SetWindowPos, WS_BORDER, WS_CAPTION, WS_THICKFRAME, WS_MINIMIZE, WS_MAXIMIZE, WS_SYSMENU, WS_MAXIMIZEBOX, HWND_NOTOPMOST, HWND_BOTTOM, GWL_STYLE, SW_RESTORE};
     use crate::patch::patch::*;
 
 
@@ -122,6 +123,23 @@ pub mod helper {
             l_style &= !(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU).0 as i32;
             unsafe { SetWindowLongA(hwnd, GWL_STYLE, l_style) };
         }
+    }
+
+
+    pub fn get_display_res() -> Option<[u32; 2]> {
+        let mut device = DISPLAY_DEVICEW::default();
+        device.cb = size_of::<DISPLAY_DEVICEW>() as u32;
+
+        let result = unsafe { EnumDisplayDevicesW(PCWSTR(null()), 0, &mut device, 0) };
+        if !result.as_bool() { return None; }
+
+        let device_name: Vec<u16> = device.DeviceName.iter().cloned().collect();
+        let device_context = unsafe { CreateDCW(PCWSTR(null()), PCWSTR(device_name.as_ptr()), PCWSTR(null()), None) };
+
+        let width = unsafe { GetDeviceCaps(device_context, HORZRES) } as u32;
+        let height = unsafe { GetDeviceCaps(device_context, VERTRES) } as u32;
+
+        Some([width, height])
     }
 
 

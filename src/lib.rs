@@ -74,8 +74,15 @@ fn res_watcher(config: &HashMap<String, conf::Value>) { // This is incredibly st
     let width_address = get_address_by_offset(WIDTH_OFFSET);
     let height_address = get_address_by_offset(HEIGHT_OFFSET);
 
-    let width = config.get("width").unwrap().unwrap();
-    let height = config.get("height").unwrap().unwrap();
+    let mut width = config.get("width").unwrap().unwrap();
+    let mut height = config.get("height").unwrap().unwrap();
+
+    if width <= 0 || height <= 0 { 
+        let res = get_display_res().expect("Don't you have a monitor??");
+        width = res[0];
+        height = res[1];
+    }
+    println!("[INFO] - Trying to convince Chess Titans to launch as {}x{}", width, height);
 
     let mut i = 0;
     loop {
@@ -116,7 +123,6 @@ fn main() {
     }
     set_fov(config_0.get("fov").unwrap().unwrap());
     set_altitude(config_0.get("altitude").unwrap().unwrap());
-
 
     // Continue with new threads to unblock the main thread
     if config_0.get("settings_override").unwrap().unwrap() {
