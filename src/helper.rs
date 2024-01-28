@@ -80,6 +80,20 @@ pub mod helper {
     }
 
 
+    pub fn set_fov(fov: f32) {
+        const FOV_OFFSET: u32 = 0x13100c;
+
+        let _ = unsafe { write_to(get_address_by_offset(FOV_OFFSET), fov) };
+    }
+
+
+    pub fn set_altitude(altitude: f32) {
+        const ALT_OFFSET: u32 = 0x131008;
+
+        let _ = unsafe { write_to(get_address_by_offset(ALT_OFFSET), altitude) };
+    }
+
+
     pub fn get_window_class_name(hwnd: HWND) -> String {
         let length = unsafe { GetWindowTextLengthW(hwnd) + 1 };
         let mut lp_string: Vec<u8> = vec![0x8; length as usize];

@@ -110,6 +110,9 @@ fn main() {
 
     // Thank you Adam :)
     apply_and_report(&CONSTANT_TICK,    true,   "Constant Tick - by AdamPlayer");
+    set_fov(config_0.get("fov").unwrap().unwrap());
+    set_altitude(config_0.get("altitude").unwrap().unwrap());
+    
 
     // Continue with new threads to unblock the main thread
     thread::spawn(settings_watcher);

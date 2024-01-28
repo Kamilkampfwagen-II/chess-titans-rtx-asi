@@ -71,7 +71,8 @@ pub mod conf {
     pub fn read() -> HashMap<String, Value> {
         let default_config = HashMap::from([
             ("console"   , Value::Bool(true)),
-            ("fov"       , Value::F32(90.0) ),
+            ("fov"       , Value::F32(40.0) ),
+            ("altitude"  , Value::F32(90.0) ),
             ("width"     , Value::U32(1920) ),
             ("height"    , Value::U32(1080) ),
             ("fullscreen", Value::Bool(true)),
