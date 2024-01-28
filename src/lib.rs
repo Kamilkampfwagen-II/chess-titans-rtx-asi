@@ -97,25 +97,31 @@ fn res_watcher(config: &HashMap<String, conf::Value>) { // This is incredibly st
 
 
 fn main() {
+    // Read the config and clone references for new threads
     let config_0 = Arc::new(conf::read());
     let config_1 = Arc::clone(&config_0);
     let config_2 = Arc::clone(&config_0);
+
 
     // Attach a console so we can print stuff
     if config_0.get("console").unwrap().unwrap() {
         let _ = unsafe { AllocConsole() };
     }
-
     println!("Welcome to Chess Titans RTX");
 
+
     // Thank you Adam :)
-    apply_and_report(&CONSTANT_TICK,    true,   "Constant Tick - by AdamPlayer");
+    if config_0.get("constant_tick_patch").unwrap().unwrap() {
+        apply_and_report(&CONSTANT_TICK,    true,   "Constant Tick - by AdamPlayer");
+    }
     set_fov(config_0.get("fov").unwrap().unwrap());
     set_altitude(config_0.get("altitude").unwrap().unwrap());
-    
+
 
     // Continue with new threads to unblock the main thread
-    thread::spawn(settings_watcher);
+    if config_0.get("settings_override").unwrap().unwrap() {
+        thread::spawn(settings_watcher);
+    }
     thread::spawn(move || res_watcher(&*config_2)); 
     thread::spawn(move || window_watcher(&*config_1));
 }
