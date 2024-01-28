@@ -81,6 +81,7 @@ pub mod helper {
 
 
     pub fn set_fov(fov: f32) {
+        // by https://github.com/adamplayer
         const FOV_OFFSET: u32 = 0x13100c;
 
         let _ = unsafe { write_to(get_address_by_offset(FOV_OFFSET), fov) };
@@ -88,6 +89,7 @@ pub mod helper {
 
 
     pub fn set_altitude(altitude: f32) {
+        // by https://github.com/adamplayer
         const ALT_OFFSET: u32 = 0x131008;
 
         let _ = unsafe { write_to(get_address_by_offset(ALT_OFFSET), altitude) };
