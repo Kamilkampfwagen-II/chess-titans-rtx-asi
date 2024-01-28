@@ -19,7 +19,7 @@ use windows::Win32::Foundation::{BOOL, HANDLE, HWND, LPARAM};
 use windows::Win32::System::Console::AllocConsole;
 use windows::Win32::System::SystemServices::{DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH, DLL_THREAD_ATTACH, DLL_THREAD_DETACH};
 use windows::Win32::System::Threading::GetCurrentProcessId;
-use windows::Win32::UI::WindowsAndMessaging::{GetWindowThreadProcessId, EnumWindows, ShowWindow, SW_RESTORE};
+use windows::Win32::UI::WindowsAndMessaging::{GetWindowThreadProcessId, EnumWindows};
 
 
 #[no_mangle]
