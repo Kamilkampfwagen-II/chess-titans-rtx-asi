@@ -43,15 +43,15 @@ fn window_watcher(config: &HashMap<String, conf::Value>) {
         let _ = unsafe { EnumWindows(Some(enum_windows_proc),  LPARAM(&mut hwnd as *mut HWND as isize)) }; // This always returns Err() for some reason, so we ignore it
         if hwnd != Default::default() { break; }
     }
-    println!("[OK] - Found Chess Titans window with handle {}", hwnd.0);
+    println!("[INFO] - Found Chess Titans window with handle {}", hwnd.0);
 
     disable_maximize(hwnd);
-    println!("[OK] - Disabled maximize button"); // Also un-maximizes the window
+    println!("[INFO] - Disabled maximize button"); // Also un-maximizes the window
 
     if config.get("fullscreen").unwrap().unwrap() {
         make_borderless(hwnd);
         let _ = move_window(hwnd);
-        println!("[OK] - Enabled borderless window");
+        println!("[INFO] - Enabled borderless window");
     }
 }
 

@@ -75,7 +75,7 @@ pub mod helper {
     pub fn apply_and_report(patch_set: &[Patch], verify: bool, ok_msg: &str) {
         let result = apply_patch(patch_set, verify);
         match result {
-            Ok(()) => println!("[OK] - Applied patch: {}", ok_msg),
+            Ok(()) => println!("[INFO] - Applied patch: {}", ok_msg),
             Err(error) => println!("[FAIL] - {}", error),
         }
     }
