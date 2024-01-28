@@ -10,7 +10,6 @@ pub mod patch {
 
 
     #[derive(Debug)]
-
     pub enum PatchError {
         ByteMismatch(u32, u8, u8),
     }

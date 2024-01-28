@@ -9,14 +9,20 @@ edition = "2021"
 name = "chess_titans_rtx"
 crate-type = ["cdylib"]
 
+[dependencies]
+rust-ini = "0.20.0"
+
 [dependencies.windows]
 version = "0.52.0"
 features = [
     "Win32_Foundation",
+    "Win32_Graphics_Gdi",
     "Win32_System_Console",
     "Win32_System_LibraryLoader",
     "Win32_System_Memory_NonVolatile",
     "Win32_System_SystemServices",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
 ]
 
 [profile.release]
@@ -25,4 +31,3 @@ opt-level = 2
 lto = true
 incremental = false
 codegen-units = 16
-panic = "abort"
