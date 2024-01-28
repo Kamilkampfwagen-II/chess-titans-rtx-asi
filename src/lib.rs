@@ -90,7 +90,7 @@ fn res_watcher(config: &HashMap<String, conf::Value>) { // This is incredibly st
         }
 
         i += 1;
-        if i > 1000 { break; } // No need to continue the loop after the window initialization
+        if i > 5000 { break; } // No need to continue the loop after the window initialization
         thread::sleep(Duration::from_millis(1));
     }
 }
