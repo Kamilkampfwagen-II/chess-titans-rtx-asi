@@ -1,10 +1,10 @@
 mod patch;
 
 mod patches;
-use patches::patches::*;
+use patches::*;
 
 mod helper;
-use helper::helper::*;
+use helper::*;
 
 mod config;
 use config::conf;
@@ -33,7 +33,8 @@ extern "system" fn enum_windows_proc(hwnd: HWND, l_param: LPARAM) -> BOOL {
 
     // This is the window we're looking for
     unsafe { *(l_param.0 as *mut HWND) = hwnd };
-    return BOOL(0);
+
+    BOOL(0)
 }
 
 
@@ -57,10 +58,10 @@ fn window_watcher(config: &HashMap<String, conf::Value>) {
 
 
 fn settings_watcher() {
-    let patch_address = get_address_by_offset(GRAPHICS_LEVEL_3.get(0).unwrap().offset);
+    let patch_address = get_address_by_offset(GRAPHICS_LEVEL_3.first().unwrap().offset);
 
     loop {
-        if unsafe { read_from::<u8>(patch_address) } != GRAPHICS_LEVEL_3.get(0).unwrap().new {
+        if unsafe { read_from::<u8>(patch_address) } != GRAPHICS_LEVEL_3.first().unwrap().new {
             apply_and_report(&GRAPHICS_LEVEL_3, false, "Revert graphics level to 3")
         }
         thread::sleep(Duration::from_millis(1));
@@ -129,9 +130,9 @@ fn main() {
         thread::spawn(settings_watcher);
     }
     if config_0.get("fullscreen").unwrap().unwrap() {
-        thread::spawn(move || res_watcher(&*config_2)); 
+        thread::spawn(move || res_watcher(&config_2)); 
     }
-    thread::spawn(move || window_watcher(&*config_1));
+    thread::spawn(move || window_watcher(&config_1));
 }
 
 
@@ -145,23 +146,23 @@ extern "system" fn DllMain(
     match call_reason {
         DLL_PROCESS_ATTACH => {
             main();
-            return BOOL(1)
+            BOOL(1)
         }
 
         DLL_PROCESS_DETACH => {
-            return BOOL(1)
+            BOOL(1)
         }
         
         DLL_THREAD_ATTACH => {
-            return BOOL(1)
+            BOOL(1)
         }
         
         DLL_THREAD_DETACH => {
-            return BOOL(1)
+            BOOL(1)
         }
         
         _ => {
-            return BOOL(1)
+            BOOL(1)
         }
     }
 }
