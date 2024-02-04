@@ -17,19 +17,24 @@ use std::time::Duration;
 
 use windows::Win32::Foundation::{BOOL, HANDLE, HWND, LPARAM};
 use windows::Win32::System::Console::AllocConsole;
-use windows::Win32::System::SystemServices::{DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH, DLL_THREAD_ATTACH, DLL_THREAD_DETACH};
+use windows::Win32::System::SystemServices::{
+    DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH, DLL_THREAD_ATTACH, DLL_THREAD_DETACH,
+};
 use windows::Win32::System::Threading::GetCurrentProcessId;
-use windows::Win32::UI::WindowsAndMessaging::{GetWindowThreadProcessId, EnumWindows};
-
+use windows::Win32::UI::WindowsAndMessaging::{EnumWindows, GetWindowThreadProcessId};
 
 #[no_mangle]
 extern "system" fn enum_windows_proc(hwnd: HWND, l_param: LPARAM) -> BOOL {
     let mut pid: u32 = 0;
     unsafe { GetWindowThreadProcessId(hwnd, Some(&mut pid as *mut u32)) };
-    if pid != unsafe { GetCurrentProcessId() } { return BOOL(1); }
+    if pid != unsafe { GetCurrentProcessId() } {
+        return BOOL(1);
+    }
 
     let wclass_name = get_window_class_name(hwnd);
-    if wclass_name != "ChessWindowC" { return  BOOL(1); }
+    if wclass_name != "ChessWindowC" {
+        return BOOL(1);
+    }
 
     // This is the window we're looking for
     unsafe { *(l_param.0 as *mut HWND) = hwnd };
@@ -37,12 +42,18 @@ extern "system" fn enum_windows_proc(hwnd: HWND, l_param: LPARAM) -> BOOL {
     BOOL(0)
 }
 
-
 fn window_watcher(config: &HashMap<String, conf::Value>) {
     let mut hwnd: HWND = Default::default();
     loop {
-        let _ = unsafe { EnumWindows(Some(enum_windows_proc),  LPARAM(&mut hwnd as *mut HWND as isize)) }; // This always returns Err() for some reason, so we ignore it
-        if hwnd != Default::default() { break; }
+        let _ = unsafe {
+            EnumWindows(
+                Some(enum_windows_proc),
+                LPARAM(&mut hwnd as *mut HWND as isize),
+            )
+        }; // This always returns Err() for some reason, so we ignore it
+        if hwnd != Default::default() {
+            break;
+        }
     }
     println!("[INFO] - Found Chess Titans window with handle {}", hwnd.0);
 
@@ -56,7 +67,6 @@ fn window_watcher(config: &HashMap<String, conf::Value>) {
     }
 }
 
-
 fn settings_watcher() {
     let patch_address = get_address_by_offset(GRAPHICS_LEVEL_3.first().unwrap().offset);
 
@@ -68,8 +78,8 @@ fn settings_watcher() {
     }
 }
 
-
-fn res_watcher(config: &HashMap<String, conf::Value>) { // This is incredibly stupid, but I have no other solution for now
+fn res_watcher(config: &HashMap<String, conf::Value>) {
+    // This is incredibly stupid, but I have no other solution for now
     const WIDTH_OFFSET: u32 = 0x131154;
     const HEIGHT_OFFSET: u32 = 0x131158;
     let width_address = get_address_by_offset(WIDTH_OFFSET);
@@ -78,18 +88,21 @@ fn res_watcher(config: &HashMap<String, conf::Value>) { // This is incredibly st
     let mut width = config.get("width").unwrap().unwrap();
     let mut height = config.get("height").unwrap().unwrap();
 
-    if width == 0 || height == 0 { 
+    if width == 0 || height == 0 {
         let res = get_display_res().expect("Don't you have a monitor??");
         width = res[0];
         height = res[1];
     }
-    println!("[INFO] - Trying to convince Chess Titans to launch as {}x{}", width, height);
+    println!(
+        "[INFO] - Trying to convince Chess Titans to launch as {}x{}",
+        width, height
+    );
 
     let mut i = 0;
     loop {
         if unsafe { read_from::<u32>(width_address) } != width {
             i = 0;
-            let _ = unsafe { write_to(width_address , width) };
+            let _ = unsafe { write_to(width_address, width) };
         }
 
         if unsafe { read_from::<u32>(height_address) } != height {
@@ -98,11 +111,12 @@ fn res_watcher(config: &HashMap<String, conf::Value>) { // This is incredibly st
         }
 
         i += 1;
-        if i > 5000 { break; } // No need to continue the loop after the window initialization
+        if i > 5000 {
+            break;
+        } // No need to continue the loop after the window initialization
         thread::sleep(Duration::from_millis(1));
     }
 }
-
 
 fn main() {
     // Read the config and clone references for new threads
@@ -110,17 +124,15 @@ fn main() {
     let config_1 = Arc::clone(&config_0);
     let config_2 = Arc::clone(&config_0);
 
-
     // Attach a console so we can print stuff
     if config_0.get("console").unwrap().unwrap() {
         let _ = unsafe { AllocConsole() };
     }
     println!("Welcome to Chess Titans RTX");
 
-
     // Thank you Adam :)
     if config_0.get("constant_tick_patch").unwrap().unwrap() {
-        apply_and_report(&CONSTANT_TICK,    true,   "Constant Tick - by AdamPlayer");
+        apply_and_report(&CONSTANT_TICK, true, "Constant Tick - by AdamPlayer");
     }
     set_fov(config_0.get("fov").unwrap().unwrap());
     set_altitude(config_0.get("altitude").unwrap().unwrap());
@@ -130,39 +142,26 @@ fn main() {
         thread::spawn(settings_watcher);
     }
     if config_0.get("fullscreen").unwrap().unwrap() {
-        thread::spawn(move || res_watcher(&config_2)); 
+        thread::spawn(move || res_watcher(&config_2));
     }
     thread::spawn(move || window_watcher(&config_1));
 }
 
-
 #[allow(unused_variables)]
 #[no_mangle]
-extern "system" fn DllMain(
-    dll_module: HANDLE,
-    call_reason: u32,
-    lpv_reserverd: &u32,
-) -> BOOL {
+extern "system" fn DllMain(dll_module: HANDLE, call_reason: u32, lpv_reserverd: &u32) -> BOOL {
     match call_reason {
         DLL_PROCESS_ATTACH => {
             main();
             BOOL(1)
         }
 
-        DLL_PROCESS_DETACH => {
-            BOOL(1)
-        }
-        
-        DLL_THREAD_ATTACH => {
-            BOOL(1)
-        }
-        
-        DLL_THREAD_DETACH => {
-            BOOL(1)
-        }
-        
-        _ => {
-            BOOL(1)
-        }
+        DLL_PROCESS_DETACH => BOOL(1),
+
+        DLL_THREAD_ATTACH => BOOL(1),
+
+        DLL_THREAD_DETACH => BOOL(1),
+
+        _ => BOOL(1),
     }
 }
