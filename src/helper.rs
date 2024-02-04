@@ -59,18 +59,16 @@ where
 }
 
 pub fn get_address_by_offset(offset: u32) -> u32 {
-    let h_parent_module = unsafe { GetModuleHandleW(None).unwrap() }; // I don't see a reason for this to fail
-
-    h_parent_module.0 as u32 + offset
+    unsafe { GetModuleHandleW(None).unwrap() }.0 as u32 + offset // I don't see a reason for this to fail
 }
 
 pub fn apply_patch(patch_set: &[Patch], verify: bool) -> Result<(), Box<dyn error::Error>> {
+    let base_address = get_address_by_offset(0);
+
     if verify {
         for patch in patch_set.iter() {
-            let patch_address = get_address_by_offset(patch.offset) as *mut u8;
-            let target_byte = unsafe { *patch_address };
-
-            if !verify || target_byte == patch.org {
+            let target_byte = unsafe { read_from::<u8>(base_address + patch.offset) };
+            if target_byte == patch.org {
                 continue;
             }
 
