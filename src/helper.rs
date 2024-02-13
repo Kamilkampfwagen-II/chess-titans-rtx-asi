@@ -147,7 +147,7 @@ pub fn get_display_res() -> Option<[u32; 2]> {
         ..Default::default()
     };
 
-    let result = unsafe { EnumDisplayDevicesW(PCWSTR(null()), 0, &mut device, 0) };
+    let result = unsafe { EnumDisplayDevicesW(None, 0, &mut device, 0) };
     if !result.as_bool() {
         return None;
     }
@@ -155,9 +155,9 @@ pub fn get_display_res() -> Option<[u32; 2]> {
     let device_name: Vec<u16> = device.DeviceName.to_vec();
     let device_context = unsafe {
         CreateDCW(
-            PCWSTR(null()),
+            None,
             PCWSTR(device_name.as_ptr()),
-            PCWSTR(null()),
+            None,
             None,
         )
     };
