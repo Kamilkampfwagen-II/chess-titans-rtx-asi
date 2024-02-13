@@ -15,10 +15,9 @@ use windows::Win32::System::Memory::{
     VirtualProtect, PAGE_EXECUTE_READWRITE, PAGE_PROTECTION_FLAGS,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetClassNameW, GetWindowLongA, SetWindowLongA,
-    SetWindowPos, ShowWindow, GWL_STYLE, HWND_BOTTOM, HWND_NOTOPMOST, SET_WINDOW_POS_FLAGS,
-    SW_RESTORE, WS_BORDER, WS_CAPTION, WS_MAXIMIZE, WS_MAXIMIZEBOX, WS_MINIMIZE, WS_SYSMENU,
-    WS_THICKFRAME,
+    GetClassNameW, GetWindowLongA, SetWindowLongA, SetWindowPos, ShowWindow, GWL_STYLE, SWP_NOSIZE,
+    SWP_NOZORDER, SW_RESTORE, WS_BORDER, WS_CAPTION, WS_MAXIMIZE, WS_MAXIMIZEBOX, WS_MINIMIZE,
+    WS_SYSMENU, WS_THICKFRAME,
 };
 
 pub unsafe fn write_to<T>(address: u32, value: T) -> Result<(), core::Error>
@@ -169,16 +168,6 @@ pub fn get_display_res() -> Option<[u32; 2]> {
     Some([width, height])
 }
 
-pub fn move_window(hwnd: HWND) -> Result<(), core::Error> {
-    unsafe {
-        SetWindowPos(
-            hwnd,
-            HWND_NOTOPMOST,
-            0,
-            0,
-            0,
-            0,
-            SET_WINDOW_POS_FLAGS(HWND_BOTTOM.0 as u32),
-        )
-    }
+pub fn move_window(hwnd: HWND) -> core::Result<()> {
+    unsafe { SetWindowPos(hwnd, HWND(0), 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER) }
 }
