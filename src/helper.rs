@@ -2,7 +2,6 @@ use std::error;
 use std::ffi::{c_void, OsString};
 use std::mem::size_of;
 use std::os::windows::ffi::OsStringExt;
-use std::ptr::null;
 
 use crate::patch::*;
 use windows::core::{self, PCWSTR};
