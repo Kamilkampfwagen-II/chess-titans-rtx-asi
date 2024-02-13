@@ -20,7 +20,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     WS_SYSMENU, WS_THICKFRAME,
 };
 
-pub unsafe fn write_to<T>(address: u32, value: T) -> Result<(), core::Error>
+pub unsafe fn write_to<T>(address: u32, value: T) -> core::Result<()>
 where
     T: Copy,
 {
