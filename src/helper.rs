@@ -1,6 +1,7 @@
 use std::error;
-use std::ffi::c_void;
+use std::ffi::{c_void, OsString};
 use std::mem::size_of;
+use std::os::windows::ffi::OsStringExt;
 use std::ptr::null;
 
 use crate::patch::*;
@@ -14,9 +15,10 @@ use windows::Win32::System::Memory::{
     VirtualProtect, PAGE_EXECUTE_READWRITE, PAGE_PROTECTION_FLAGS,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetClassNameA, GetWindowLongA, GetWindowTextLengthW, SetWindowLongA, SetWindowPos, ShowWindow,
-    GWL_STYLE, HWND_BOTTOM, HWND_NOTOPMOST, SET_WINDOW_POS_FLAGS, SW_RESTORE, WS_BORDER,
-    WS_CAPTION, WS_MAXIMIZE, WS_MAXIMIZEBOX, WS_MINIMIZE, WS_SYSMENU, WS_THICKFRAME,
+    GetClassNameW, GetWindowLongA, SetWindowLongA,
+    SetWindowPos, ShowWindow, GWL_STYLE, HWND_BOTTOM, HWND_NOTOPMOST, SET_WINDOW_POS_FLAGS,
+    SW_RESTORE, WS_BORDER, WS_CAPTION, WS_MAXIMIZE, WS_MAXIMIZEBOX, WS_MINIMIZE, WS_SYSMENU,
+    WS_THICKFRAME,
 };
 
 pub unsafe fn write_to<T>(address: u32, value: T) -> Result<(), core::Error>
@@ -110,15 +112,16 @@ pub fn set_altitude(altitude: f32) {
     let _ = unsafe { write_to(get_address_by_offset(ALT_OFFSET), altitude) };
 }
 
-pub fn get_window_class_name(hwnd: HWND) -> String {
-    let length = unsafe { GetWindowTextLengthW(hwnd) + 1 };
-    let mut lp_string: Vec<u8> = vec![0x8; length as usize];
-    unsafe { GetClassNameA(hwnd, &mut lp_string) };
+pub fn get_window_class_name(hwnd: HWND) -> Option<OsString> {
+    let mut class_name: Vec<u16> = vec![0; 256];
+    let result = unsafe { GetClassNameW(hwnd, &mut class_name) };
+    if result == 0 {
+        return None;
+    }
 
-    String::from_utf8(lp_string)
-        .unwrap_or_else(|_| String::from(""))
-        .trim_end_matches('\0')
-        .to_string()
+    let length = result as usize;
+    class_name.truncate(length);
+    Some(OsString::from_wide(&class_name))
 }
 
 pub fn disable_maximize(hwnd: HWND) {

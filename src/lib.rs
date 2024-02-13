@@ -32,7 +32,7 @@ extern "system" fn enum_windows_proc(hwnd: HWND, l_param: LPARAM) -> BOOL {
     }
 
     let wclass_name = get_window_class_name(hwnd);
-    if wclass_name != "ChessWindowC" {
+    if wclass_name != Some("ChessWindowClass".into()) {
         return BOOL(1);
     }
 
