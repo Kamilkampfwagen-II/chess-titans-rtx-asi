@@ -156,7 +156,7 @@ pub fn get_window_monitor_res(hwnd: HWND) -> Option<[u32; 2]> {
     let monitor = unsafe { MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST) };
     let mut monitor_info = MONITORINFO {
         cbSize: size_of::<MONITORINFO>() as u32,
-        ..Default::default()
+        ..MONITORINFO::default()
     };
 
     let result = unsafe { GetMonitorInfoW(monitor, &mut monitor_info) };
