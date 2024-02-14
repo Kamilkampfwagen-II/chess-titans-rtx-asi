@@ -4,19 +4,19 @@ use std::mem::size_of;
 use std::os::windows::ffi::OsStringExt;
 
 use crate::patch::*;
-use windows::core::{self, PCWSTR};
+use windows::core;
 use windows::Win32::Foundation::HWND;
 use windows::Win32::Graphics::Gdi::{
-    CreateDCW, EnumDisplayDevicesW, GetDeviceCaps, DISPLAY_DEVICEW, HORZRES, VERTRES,
+    GetMonitorInfoW, MonitorFromWindow, MONITORINFO, MONITOR_DEFAULTTONEAREST,
 };
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
 use windows::Win32::System::Memory::{
     VirtualProtect, PAGE_EXECUTE_READWRITE, PAGE_PROTECTION_FLAGS,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetClassNameW, GetWindowLongA, SetWindowLongA, SetWindowPos, ShowWindow, GWL_STYLE, SWP_NOSIZE,
-    SWP_NOZORDER, SW_RESTORE, WS_BORDER, WS_CAPTION, WS_MAXIMIZE, WS_MAXIMIZEBOX, WS_MINIMIZE,
-    WS_SYSMENU, WS_THICKFRAME,
+    GetClassNameW, GetWindowLongA, SetWindowLongA, SetWindowPos, ShowWindow, GWL_STYLE,
+    SWP_NOZORDER, SW_RESTORE, WS_CAPTION, WS_MAXIMIZE, WS_MAXIMIZEBOX, WS_MINIMIZE, WS_SYSMENU,
+    WS_THICKFRAME,
 };
 
 pub unsafe fn write_to<T>(address: u32, value: T) -> core::Result<()>
@@ -131,42 +131,41 @@ pub fn disable_maximize(hwnd: HWND) {
     unsafe { SetWindowLongA(hwnd, GWL_STYLE, l_style) };
 }
 
-pub fn make_borderless(hwnd: HWND) {
+pub fn make_borderless_fullscreen(hwnd: HWND, res: [u32; 2]) -> core::Result<()> {
     let mut l_style = unsafe { GetWindowLongA(hwnd, GWL_STYLE) };
 
-    if l_style & WS_BORDER.0 as i32 != 0 {
-        l_style &= !(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU).0 as i32;
-        unsafe { SetWindowLongA(hwnd, GWL_STYLE, l_style) };
+    // Make borderless
+    l_style &= !(WS_CAPTION | WS_THICKFRAME | WS_MINIMIZE | WS_MAXIMIZE | WS_SYSMENU).0 as i32;
+    unsafe { SetWindowLongA(hwnd, GWL_STYLE, l_style) };
+
+    // Move to top-left, resize to the given resolution
+    unsafe {
+        SetWindowPos(
+            hwnd,
+            HWND(0),
+            0,
+            0,
+            res[0] as i32,
+            res[1] as i32,
+            SWP_NOZORDER,
+        )
     }
 }
 
-pub fn get_display_res() -> Option<[u32; 2]> {
-    let mut device = DISPLAY_DEVICEW {
-        cb: size_of::<DISPLAY_DEVICEW>() as u32,
+pub fn get_window_monitor_res(hwnd: HWND) -> Option<[u32; 2]> {
+    let monitor = unsafe { MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST) };
+    let mut monitor_info = MONITORINFO {
+        cbSize: size_of::<MONITORINFO>() as u32,
         ..Default::default()
     };
 
-    let result = unsafe { EnumDisplayDevicesW(None, 0, &mut device, 0) };
+    let result = unsafe { GetMonitorInfoW(monitor, &mut monitor_info) };
     if !result.as_bool() {
         return None;
     }
 
-    let device_name: Vec<u16> = device.DeviceName.to_vec();
-    let device_context = unsafe {
-        CreateDCW(
-            None,
-            PCWSTR(device_name.as_ptr()),
-            None,
-            None,
-        )
-    };
+    let width = monitor_info.rcMonitor.right - monitor_info.rcMonitor.left;
+    let height = monitor_info.rcMonitor.bottom - monitor_info.rcMonitor.top;
 
-    let width = unsafe { GetDeviceCaps(device_context, HORZRES) } as u32;
-    let height = unsafe { GetDeviceCaps(device_context, VERTRES) } as u32;
-
-    Some([width, height])
-}
-
-pub fn move_window(hwnd: HWND) -> core::Result<()> {
-    unsafe { SetWindowPos(hwnd, HWND(0), 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER) }
+    Some([width as u32, height as u32])
 }

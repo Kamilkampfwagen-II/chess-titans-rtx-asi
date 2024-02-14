@@ -61,8 +61,18 @@ fn window_watcher(config: &HashMap<String, conf::Value>) {
     println!("[INFO] - Disabled maximize button"); // Also un-maximizes the window
 
     if config.get("fullscreen").unwrap().unwrap() {
-        make_borderless(hwnd);
-        let _ = move_window(hwnd);
+        let mut width: u32 = config.get("width").unwrap().unwrap();
+        let mut height: u32 = config.get("height").unwrap().unwrap();
+        if width == 0 || height == 0 {
+            let res = get_window_monitor_res(hwnd)
+                .expect("Failed to get display resolution, don't you have a monitor??");
+            width = res[0];
+            height = res[1];
+        }
+
+        make_borderless_fullscreen(hwnd, [width, height])
+            .expect("Failed to enable fullscreen windowed. Whats going on here?");
+
         println!("[INFO] - Enabled borderless window");
     }
 }
@@ -78,51 +88,10 @@ fn settings_watcher() {
     }
 }
 
-fn res_watcher(config: &HashMap<String, conf::Value>) {
-    // This is incredibly stupid, but I have no other solution for now
-    const WIDTH_OFFSET: u32 = 0x131154;
-    const HEIGHT_OFFSET: u32 = 0x131158;
-    let width_address = get_address_by_offset(WIDTH_OFFSET);
-    let height_address = get_address_by_offset(HEIGHT_OFFSET);
-
-    let mut width = config.get("width").unwrap().unwrap();
-    let mut height = config.get("height").unwrap().unwrap();
-
-    if width == 0 || height == 0 {
-        let res = get_display_res().expect("Don't you have a monitor??");
-        width = res[0];
-        height = res[1];
-    }
-    println!(
-        "[INFO] - Trying to convince Chess Titans to launch as {}x{}",
-        width, height
-    );
-
-    let mut i = 0;
-    loop {
-        if unsafe { read_from::<u32>(width_address) } != width {
-            i = 0;
-            let _ = unsafe { write_to(width_address, width) };
-        }
-
-        if unsafe { read_from::<u32>(height_address) } != height {
-            i = 0;
-            let _ = unsafe { write_to(height_address, height) };
-        }
-
-        i += 1;
-        if i > 5000 {
-            break;
-        } // No need to continue the loop after the window initialization
-        thread::sleep(Duration::from_millis(1));
-    }
-}
-
 fn main() {
     // Read the config and clone references for new threads
     let config_0 = Arc::new(conf::read());
     let config_1 = Arc::clone(&config_0);
-    let config_2 = Arc::clone(&config_0);
 
     // Attach a console so we can print stuff
     if config_0.get("console").unwrap().unwrap() {
@@ -140,9 +109,6 @@ fn main() {
     // Continue with new threads to unblock the main thread
     if config_0.get("settings_override").unwrap().unwrap() {
         thread::spawn(settings_watcher);
-    }
-    if config_0.get("fullscreen").unwrap().unwrap() {
-        thread::spawn(move || res_watcher(&config_2));
     }
     thread::spawn(move || window_watcher(&config_1));
 }
