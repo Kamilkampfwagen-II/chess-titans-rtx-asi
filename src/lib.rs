@@ -43,7 +43,7 @@ extern "system" fn enum_windows_proc(hwnd: HWND, l_param: LPARAM) -> BOOL {
 }
 
 fn window_watcher(config: &HashMap<String, conf::Value>) {
-    let mut hwnd: HWND = Default::default();
+    let mut hwnd = HWND::default();
     loop {
         let _ = unsafe {
             EnumWindows(
@@ -51,7 +51,7 @@ fn window_watcher(config: &HashMap<String, conf::Value>) {
                 LPARAM(&mut hwnd as *mut HWND as isize),
             )
         }; // This always returns Err() for some reason, so we ignore it
-        if hwnd != Default::default() {
+        if hwnd != HWND::default() {
             break;
         }
     }

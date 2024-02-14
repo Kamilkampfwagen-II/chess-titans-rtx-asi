@@ -82,7 +82,7 @@ pub mod conf {
         let ini = Ini::load_from_file("chess_titans_rtx.conf").unwrap_or_default();
         let user_config = ini.section::<String>(None).unwrap_or(&binding);
 
-        let mut config: HashMap<String, Value> = Default::default();
+        let mut config = HashMap::default();
         for (k, v) in default_config {
             let result = user_config.get(k);
             let value_str = match result {

@@ -25,7 +25,7 @@ where
 {
     let region = address as *mut T;
 
-    let mut old_protect: PAGE_PROTECTION_FLAGS = Default::default();
+    let mut old_protect = PAGE_PROTECTION_FLAGS::default();
     unsafe {
         // Disable virtual page protection
         VirtualProtect(
