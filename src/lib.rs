@@ -60,9 +60,9 @@ fn window_watcher(config: &HashMap<String, conf::Value>) {
     disable_maximize(hwnd);
     println!("[INFO] - Disabled maximize button"); // Also un-maximizes the window
 
-    if config.get("fullscreen").unwrap().unwrap() {
-        let mut width: u32 = config.get("width").unwrap().unwrap();
-        let mut height: u32 = config.get("height").unwrap().unwrap();
+    if config["fullscreen"].unwrap() {
+        let mut width: u32 = config["width"].unwrap();
+        let mut height: u32 = config["height"].unwrap();
         if width == 0 || height == 0 {
             let res = get_window_monitor_res(hwnd)
                 .expect("Failed to get display resolution, don't you have a monitor??");
@@ -94,20 +94,20 @@ fn main() {
     let config_1 = Arc::clone(&config_0);
 
     // Attach a console so we can print stuff
-    if config_0.get("console").unwrap().unwrap() {
+    if config_0["console"].unwrap() {
         let _ = unsafe { AllocConsole() };
     }
     println!("Welcome to Chess Titans RTX");
 
     // Thank you Adam :)
-    if config_0.get("constant_tick_patch").unwrap().unwrap() {
+    if config_0["constant_tick_patch"].unwrap() {
         apply_and_report(&CONSTANT_TICK, true, "Constant Tick - by AdamPlayer");
     }
-    set_fov(config_0.get("fov").unwrap().unwrap());
-    set_altitude(config_0.get("altitude").unwrap().unwrap());
+    set_fov(config_0["fov"].unwrap());
+    set_altitude(config_0["altitude"].unwrap());
 
     // Continue with new threads to unblock the main thread
-    if config_0.get("settings_override").unwrap().unwrap() {
+    if config_0["settings_override"].unwrap() {
         thread::spawn(settings_watcher);
     }
     thread::spawn(move || window_watcher(&config_1));
