@@ -11,51 +11,36 @@ use config::conf;
 use config::conf::Unwrap;
 
 use std::collections::HashMap;
+use std::ptr::null;
 use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
-use windows::Win32::Foundation::{BOOL, HANDLE, HWND, LPARAM};
+use windows::core::PCWSTR;
+use windows::Win32::Foundation::{BOOL, HANDLE};
 use windows::Win32::System::Console::AllocConsole;
 use windows::Win32::System::SystemServices::{
     DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH, DLL_THREAD_ATTACH, DLL_THREAD_DETACH,
 };
-use windows::Win32::System::Threading::GetCurrentProcessId;
-use windows::Win32::UI::WindowsAndMessaging::{EnumWindows, GetWindowThreadProcessId};
-
-#[no_mangle]
-extern "system" fn enum_windows_proc(hwnd: HWND, l_param: LPARAM) -> BOOL {
-    let mut pid: u32 = 0;
-    unsafe { GetWindowThreadProcessId(hwnd, Some(&mut pid as *mut u32)) };
-    if pid != unsafe { GetCurrentProcessId() } {
-        return BOOL(1);
-    }
-
-    let wclass_name = get_window_class_name(hwnd);
-    if wclass_name != Some("ChessWindowClass".into()) {
-        return BOOL(1);
-    }
-
-    // This is the window we're looking for
-    unsafe { *(l_param.0 as *mut HWND) = hwnd };
-
-    BOOL(0)
-}
+use windows::Win32::UI::WindowsAndMessaging::FindWindowW;
 
 fn window_watcher(config: &HashMap<String, conf::Value>) {
-    let mut hwnd = HWND::default();
-    loop {
-        let _ = unsafe {
-            EnumWindows(
-                Some(enum_windows_proc),
-                LPARAM(&mut hwnd as *mut HWND as isize),
-            )
-        }; // This always returns Err() for some reason, so we ignore it
-        if hwnd != HWND::default() {
-            break;
+    let class_name: Box<[u16]> = "ChessWindowClass".encode_utf16().chain(Some(0)).collect();
+    let lpclassname = PCWSTR(class_name.as_ptr());
+    let lpwindowname = PCWSTR(null());
+    let hwnd = {
+        loop {
+            if let Ok(v) = unsafe { FindWindowW(lpclassname, lpwindowname) } {
+                break v;
+            }
+            thread::sleep(Duration::from_secs(1));
         }
-    }
-    println!("[INFO] - Found Chess Titans window with handle {}", hwnd.0 as isize);
+    };
+
+    println!(
+        "[INFO] - Found Chess Titans window with handle {}",
+        hwnd.0 as isize
+    );
 
     disable_maximize(hwnd);
     println!("[INFO] - Disabled maximize button"); // Also un-maximizes the window

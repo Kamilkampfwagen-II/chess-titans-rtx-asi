@@ -1,7 +1,6 @@
 use std::error;
-use std::ffi::{c_void, OsString};
+use std::ffi::c_void;
 use std::mem::size_of;
-use std::os::windows::ffi::OsStringExt;
 
 use crate::patch::*;
 use windows::core;
@@ -14,9 +13,8 @@ use windows::Win32::System::Memory::{
     VirtualProtect, PAGE_EXECUTE_READWRITE, PAGE_PROTECTION_FLAGS,
 };
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetClassNameW, GetWindowLongA, SetWindowLongA, SetWindowPos, ShowWindow, GWL_STYLE,
-    SWP_NOZORDER, SW_RESTORE, WS_CAPTION, WS_MAXIMIZE, WS_MAXIMIZEBOX, WS_MINIMIZE, WS_SYSMENU,
-    WS_THICKFRAME,
+    GetWindowLongA, SetWindowLongA, SetWindowPos, ShowWindow, GWL_STYLE, SWP_NOZORDER, SW_RESTORE,
+    WS_CAPTION, WS_MAXIMIZE, WS_MAXIMIZEBOX, WS_MINIMIZE, WS_SYSMENU, WS_THICKFRAME,
 };
 
 pub unsafe fn write_to<T>(address: u32, value: T) -> core::Result<()>
@@ -108,18 +106,6 @@ pub fn set_altitude(altitude: f32) {
     const ALT_OFFSET: u32 = 0x131008;
 
     let _ = unsafe { write_to(get_address_by_offset(ALT_OFFSET), altitude) };
-}
-
-pub fn get_window_class_name(hwnd: HWND) -> Option<OsString> {
-    let mut class_name: Vec<u16> = vec![0; 256];
-    let result = unsafe { GetClassNameW(hwnd, &mut class_name) };
-    if result == 0 {
-        return None;
-    }
-
-    let length = result as usize;
-    class_name.truncate(length);
-    Some(OsString::from_wide(&class_name))
 }
 
 pub fn disable_maximize(hwnd: HWND) {
