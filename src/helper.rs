@@ -17,6 +17,12 @@ use windows::Win32::UI::WindowsAndMessaging::{
     WS_CAPTION, WS_MAXIMIZE, WS_MAXIMIZEBOX, WS_MINIMIZE, WS_SYSMENU, WS_THICKFRAME,
 };
 
+macro_rules! sleep_ms {
+    ($ms:expr) => {
+        std::thread::sleep(std::time::Duration::from_millis($ms))
+    };
+}
+
 pub unsafe fn write_to<T>(address: u32, value: T) -> core::Result<()>
 where
     T: Copy,

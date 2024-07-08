@@ -3,6 +3,7 @@ mod patch;
 mod patches;
 use patches::*;
 
+#[macro_use]
 mod helper;
 use helper::*;
 
@@ -13,7 +14,6 @@ use std::path::Path;
 use std::ptr::null;
 use std::sync::Arc;
 use std::thread;
-use std::time::Duration;
 
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::{BOOL, HANDLE};
@@ -32,7 +32,7 @@ fn window_watcher(config: &Config) {
             if let Ok(v) = unsafe { FindWindowW(lpclassname, lpwindowname) } {
                 break v;
             }
-            thread::sleep(Duration::from_secs(1));
+            sleep_ms!(1000);
         }
     };
 
@@ -69,7 +69,7 @@ fn settings_watcher() {
         if unsafe { read_from::<u8>(patch_address) } != patch.new {
             apply_and_report(&GRAPHICS_LEVEL_3, false, "Revert graphics level to 3")
         }
-        thread::sleep(Duration::from_millis(1));
+        sleep_ms!(1000);
     }
 }
 
