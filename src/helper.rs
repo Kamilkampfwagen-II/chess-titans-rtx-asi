@@ -155,3 +155,7 @@ pub fn get_window_monitor_res(hwnd: HWND) -> Option<[u32; 2]> {
 
     Some([width as u32, height as u32])
 }
+
+pub fn to_c_utf16(str: &str) -> Box<[u16]> {
+    str.encode_utf16().chain(Some(0)).collect()
+}

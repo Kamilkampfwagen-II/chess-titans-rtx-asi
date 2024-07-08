@@ -24,7 +24,7 @@ use windows::Win32::System::SystemServices::{
 use windows::Win32::UI::WindowsAndMessaging::FindWindowW;
 
 fn window_watcher(config: &Config) {
-    let class_name: Box<[u16]> = "ChessWindowClass".encode_utf16().chain(Some(0)).collect();
+    let class_name = to_c_utf16("ChessWindowClass");
     let lpclassname = PCWSTR(class_name.as_ptr());
     let lpwindowname = PCWSTR(null());
     let hwnd = {
