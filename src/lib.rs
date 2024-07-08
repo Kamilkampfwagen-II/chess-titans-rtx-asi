@@ -62,10 +62,11 @@ fn window_watcher(config: &Config) {
 }
 
 fn settings_watcher() {
-    let patch_address = get_address_by_offset(GRAPHICS_LEVEL_3.first().unwrap().offset);
+    let patch = GRAPHICS_LEVEL_3.first().unwrap();
+    let patch_address = get_address_by_offset(patch.offset);
 
     loop {
-        if unsafe { read_from::<u8>(patch_address) } != GRAPHICS_LEVEL_3.first().unwrap().new {
+        if unsafe { read_from::<u8>(patch_address) } != patch.new {
             apply_and_report(&GRAPHICS_LEVEL_3, false, "Revert graphics level to 3")
         }
         thread::sleep(Duration::from_millis(1));
