@@ -124,7 +124,7 @@ pub fn get_window_class_name(hwnd: HWND) -> Option<OsString> {
 
 pub fn disable_maximize(hwnd: HWND) {
     // Un-maximize the window
-    unsafe { ShowWindow(hwnd, SW_RESTORE) };
+    let _ = unsafe { ShowWindow(hwnd, SW_RESTORE) };
 
     let mut l_style = unsafe { GetWindowLongA(hwnd, GWL_STYLE) };
     l_style &= !(WS_MAXIMIZEBOX).0 as i32;
@@ -142,7 +142,7 @@ pub fn make_borderless_fullscreen(hwnd: HWND, res: [u32; 2]) -> core::Result<()>
     unsafe {
         SetWindowPos(
             hwnd,
-            HWND(0),
+            HWND::default(),
             0,
             0,
             res[0] as i32,

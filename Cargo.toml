@@ -10,10 +10,10 @@ name = "chess_titans_rtx"
 crate-type = ["cdylib"]
 
 [dependencies]
-rust-ini = "0.20.0"
+rust-ini = "0.21.0"
 
 [dependencies.windows]
-version = "0.52.0"
+version = "0.58.0"
 features = [
     "Win32_Foundation",
     "Win32_Graphics_Gdi",

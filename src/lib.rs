@@ -55,7 +55,7 @@ fn window_watcher(config: &HashMap<String, conf::Value>) {
             break;
         }
     }
-    println!("[INFO] - Found Chess Titans window with handle {}", hwnd.0);
+    println!("[INFO] - Found Chess Titans window with handle {}", hwnd.0 as isize);
 
     disable_maximize(hwnd);
     println!("[INFO] - Disabled maximize button"); // Also un-maximizes the window
