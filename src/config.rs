@@ -1,6 +1,8 @@
 pub mod conf {
     use ini::Ini;
-    use std::collections::HashMap;
+    use std::{collections::HashMap, path::Path};
+
+    pub type Config = HashMap<Box<str>, Value>;
 
     #[allow(dead_code)]
     #[derive(Debug)]
@@ -9,7 +11,7 @@ pub mod conf {
         U32(u32),
         F32(f32),
         Bool(bool),
-        String(String),
+        String(Box<str>),
     }
 
     pub trait Unwrap<T> {
@@ -56,17 +58,17 @@ pub mod conf {
         }
     }
 
-    impl Unwrap<String> for Value {
-        fn unwrap(&self) -> String {
+    impl Unwrap<Box<str>> for Value {
+        fn unwrap(&self) -> Box<str> {
             if let Value::String(val) = self {
-                val.to_string()
+                val.to_string().into()
             } else {
                 panic!("Expected String, got a different type")
             }
         }
     }
 
-    pub fn read() -> HashMap<String, Value> {
+    pub fn read(path: &Path) -> Config {
         let default_config = HashMap::from([
             ("console", Value::Bool(true)),
             ("fov", Value::F32(40.0)),
@@ -78,17 +80,16 @@ pub mod conf {
             ("settings_override", Value::Bool(true)),
         ]);
 
-        let binding = ini::Properties::default();
-        let ini = Ini::load_from_file("chess_titans_rtx.conf").unwrap_or_default();
-        let user_config = ini.section::<String>(None).unwrap_or(&binding);
+        let ini = Ini::load_from_file(path).unwrap_or_default();
+        let default = ini::Properties::default();
+        let user_config = ini.section::<String>(None).unwrap_or(&default);
 
-        let mut config = HashMap::default();
+        let mut config: Config = Config::default();
         for (k, v) in default_config {
-            let result = user_config.get(k);
-            let value_str = match result {
-                Some(value) => value,
+            let value_str = match user_config.get(k) {
+                Some(v) => v,
                 None => {
-                    config.insert(k.to_owned(), v);
+                    config.insert(k.to_owned().into(), v);
                     continue;
                 } // Fallback to default config
             };
@@ -98,10 +99,10 @@ pub mod conf {
                 Value::U32(i) => Value::U32(value_str.parse::<u32>().unwrap_or(i)),
                 Value::F32(i) => Value::F32(value_str.parse::<f32>().unwrap_or(i)),
                 Value::Bool(i) => Value::Bool(value_str.parse::<bool>().unwrap_or(i)),
-                Value::String(_) => Value::String(value_str.to_owned()),
+                Value::String(_) => Value::String(value_str.to_owned().into()),
             };
 
-            config.insert(k.to_string(), value);
+            config.insert(k.to_string().into(), value);
         }
 
         config

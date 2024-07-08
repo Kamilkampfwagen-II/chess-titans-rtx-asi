@@ -7,10 +7,9 @@ mod helper;
 use helper::*;
 
 mod config;
-use config::conf;
-use config::conf::Unwrap;
+use config::conf::{self, Config, Unwrap};
 
-use std::collections::HashMap;
+use std::path::Path;
 use std::ptr::null;
 use std::sync::Arc;
 use std::thread;
@@ -24,7 +23,7 @@ use windows::Win32::System::SystemServices::{
 };
 use windows::Win32::UI::WindowsAndMessaging::FindWindowW;
 
-fn window_watcher(config: &HashMap<String, conf::Value>) {
+fn window_watcher(config: &Config) {
     let class_name: Box<[u16]> = "ChessWindowClass".encode_utf16().chain(Some(0)).collect();
     let lpclassname = PCWSTR(class_name.as_ptr());
     let lpwindowname = PCWSTR(null());
@@ -75,7 +74,7 @@ fn settings_watcher() {
 
 fn main() {
     // Read the config and clone references for new threads
-    let config_0 = Arc::new(conf::read());
+    let config_0 = Arc::new(conf::read(Path::new("chess_titans_rtx.conf")));
     let config_1 = Arc::clone(&config_0);
 
     // Attach a console so we can print stuff
