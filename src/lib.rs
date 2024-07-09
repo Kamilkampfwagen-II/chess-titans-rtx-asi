@@ -4,8 +4,8 @@ mod patches;
 use patches::*;
 
 #[macro_use]
-mod helper;
-use helper::*;
+mod util;
+use util::*;
 
 mod config;
 use config::conf::{self, Config, Unwrap, Value};
