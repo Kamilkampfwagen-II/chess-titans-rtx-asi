@@ -58,6 +58,7 @@ fn late_init_window_creation(config: Config) {
     let vkey_fov_up: i32 = config["vkey_fov_up"].unwrap();
     let vkey_fov_down: i32 = config["vkey_fov_down"].unwrap();
     let vkey_fov_reset: i32 = config["vkey_fov_reset"].unwrap();
+    set_fov(default_fov, aspect_ratio);
 
     // let default_alt: f32 = config["altitude"].unwrap();
     // let mut alt = default_alt;
@@ -133,7 +134,6 @@ fn main() {
     let default_config = HashMap::from([
         ("console", Value::Bool(true)),
         ("fov", Value::F32(30.0)),
-        ("altitude", Value::F32(95.0)),
         ("constant_tick_patch", Value::Bool(true)),
         ("settings_override", Value::Bool(true)),
         ("vkey_fov_up", Value::I32(VK_F.0 as i32)),
