@@ -1,3 +1,6 @@
+mod bridge_api;
+use bridge_api::remix_api::*;
+
 mod config;
 use config::conf::{self, Config, Unwrap, Value};
 
@@ -11,9 +14,11 @@ mod util;
 use util::*;
 
 use std::collections::HashMap;
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::Path;
 use std::ptr::null;
 use std::thread;
+use std::time::Duration;
 
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::{BOOL, HANDLE, RECT};
@@ -23,6 +28,51 @@ use windows::Win32::System::SystemServices::{
 };
 use windows::Win32::UI::Input::KeyboardAndMouse::*;
 use windows::Win32::UI::WindowsAndMessaging::FindWindowW;
+
+fn hash<T: Hash>(t: &T) -> u64 {
+    let mut s = DefaultHasher::new();
+    t.hash(&mut s);
+    s.finish()
+}
+
+fn bridge_api_madness() {
+    sleep_ms!(5000);
+
+    let api = bridge_api::initialize().expect("Failed to initialize Bridge API!");
+
+    println!("RegisterDevice");
+    unsafe { api.RegisterDevice.assume_init()() };
+
+    let light_info = LightInfo {
+        s_type: StructType::LightInfo,
+        hash: hash(&"light0"),
+        radiance: Float3D {
+            x: 10.0,
+            y: 10.0,
+            z: 10.0,
+        },
+    };
+
+    let distant_light_info = LightInfoDistantExt {
+        s_type: StructType::LightInfoDistantExt,
+        direction: Float3D {
+            x: -0.344255,
+            y: -0.938876,
+            z: 0.0,
+        }, // Fallback light with this direction is visible at all times
+        angular_diameter_degrees: 1.0,
+    };
+
+    let handle = unsafe { api.CreateDistantLight.assume_init()(&light_info, &distant_light_info) };
+    println!(
+        "Created a distant light with handle: {} and hash: {}",
+        handle, &light_info.hash
+    );
+
+    // Keep a ref just in case
+    thread::sleep(Duration::MAX);
+    println!("{:?}, {:?}", &light_info, &distant_light_info);
+}
 
 fn late_init_window_creation(config: Config) {
     let hwnd = {
@@ -42,6 +92,8 @@ fn late_init_window_creation(config: Config) {
 
     disable_maximize(hwnd);
     println!("[INFO] - Disabled maximize button"); // Also un-maximizes the window
+
+    thread::spawn(bridge_api_madness);
 
     let mut style = 0;
     let mut rect: RECT = RECT::default();
