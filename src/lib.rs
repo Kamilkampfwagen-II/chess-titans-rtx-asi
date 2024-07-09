@@ -8,28 +8,27 @@ mod helper;
 use helper::*;
 
 mod config;
-use config::conf::{self, Config, Unwrap};
+use config::conf::{self, Config, Unwrap, Value};
+use windows::Win32::UI::Input::KeyboardAndMouse::*;
 
+use std::collections::HashMap;
 use std::path::Path;
 use std::ptr::null;
-use std::sync::Arc;
 use std::thread;
 
 use windows::core::PCWSTR;
-use windows::Win32::Foundation::{BOOL, HANDLE};
+use windows::Win32::Foundation::{BOOL, HANDLE, RECT};
 use windows::Win32::System::Console::AllocConsole;
 use windows::Win32::System::SystemServices::{
     DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH, DLL_THREAD_ATTACH, DLL_THREAD_DETACH,
 };
 use windows::Win32::UI::WindowsAndMessaging::FindWindowW;
 
-fn window_watcher(config: &Config) {
-    let class_name = to_c_utf16("ChessWindowClass");
-    let lpclassname = PCWSTR(class_name.as_ptr());
-    let lpwindowname = PCWSTR(null());
+fn late_init_window_creation(config: Config) {
     let hwnd = {
+        let class_name = to_c_utf16("ChessWindowClass");
         loop {
-            if let Ok(v) = unsafe { FindWindowW(lpclassname, lpwindowname) } {
+            if let Ok(v) = unsafe { FindWindowW(PCWSTR(class_name.as_ptr()), PCWSTR(null())) } {
                 break v;
             }
             sleep_ms!(1000);
@@ -44,20 +43,77 @@ fn window_watcher(config: &Config) {
     disable_maximize(hwnd);
     println!("[INFO] - Disabled maximize button"); // Also un-maximizes the window
 
-    if config["fullscreen"].unwrap() {
-        let mut width: u32 = config["width"].unwrap();
-        let mut height: u32 = config["height"].unwrap();
-        if width == 0 || height == 0 {
-            let res = get_window_monitor_res(hwnd)
-                .expect("Failed to get display resolution, don't you have a monitor??");
-            width = res[0];
-            height = res[1];
+    let mut style = 0;
+    let mut rect: RECT = RECT::default();
+    let mut is_fullscreen = false;
+    let vkey_fullscreen: i32 = config["vkey_fullscreen"].unwrap();
+
+    let mut aspect_ratio = {
+        let rect = get_window_fullscreen_rect(hwnd)
+            .expect("Failed to get display resolution, don't you have a monitor??");
+        (rect.right - rect.left) as f32 / (rect.bottom - rect.top) as f32
+    };
+    let default_fov: f32 = config["fov"].unwrap();
+    let mut fov = default_fov;
+    let vkey_fov_up: i32 = config["vkey_fov_up"].unwrap();
+    let vkey_fov_down: i32 = config["vkey_fov_down"].unwrap();
+    let vkey_fov_reset: i32 = config["vkey_fov_reset"].unwrap();
+
+    // let default_alt: f32 = config["altitude"].unwrap();
+    // let mut alt = default_alt;
+    // let vkey_alt_up: i32 = config["vkey_alt_up"].unwrap();
+    // let vkey_alt_down: i32 = config["vkey_alt_down"].unwrap();
+    // let vkey_alt_reset: i32 = config["vkey_alt_reset"].unwrap();
+
+    const SLEEP_MS: u64 = 50;
+    const STEP: f32 = 100.0 * SLEEP_MS as f32 / 1000.0;
+
+    loop {
+        // FOV
+        if is_pressing(vkey_fov_up) {
+            fov = (fov + STEP).min(175.0);
+            set_fov(fov, aspect_ratio);
+        } else if is_pressing(vkey_fov_down) {
+            fov = (fov - STEP).max(5.0);
+            set_fov(fov, aspect_ratio);
+        } else if is_pressing(vkey_fov_reset) {
+            fov = default_fov;
+            set_fov(fov, aspect_ratio)
         }
 
-        make_borderless_fullscreen(hwnd, [width, height])
-            .expect("Failed to enable fullscreen windowed. Whats going on here?");
+        // // Camera Altitude
+        // if is_pressing(vkey_alt_up) {
+        //     alt = (alt + STEP).min(1000.0);
+        //     set_altitude(alt);
+        // } else if is_pressing(vkey_alt_down) {
+        //     alt = (alt - STEP).max(10.0);
+        //     set_altitude(alt);
+        // } else if is_pressing(vkey_alt_reset) {
+        //     alt = default_alt;
+        //     set_altitude(alt);
+        // }
 
-        println!("[INFO] - Enabled borderless window");
+        // Borderless Fullscreen
+        if is_pressing(vkey_fullscreen) {
+            if is_fullscreen {
+                set_window_properties(hwnd, rect, style)
+                    .expect("Failed to revert back window properties!");
+            } else {
+                style = get_window_style(hwnd).expect("Failed to get window properties!");
+                rect = get_window_rect(hwnd).expect("Failed to get window size!");
+                let fullscreen_rect = get_window_fullscreen_rect(hwnd).unwrap();
+
+                set_window_properties(hwnd, fullscreen_rect, get_borderless_style(style))
+                    .expect("Failed to set window properties!");
+
+                aspect_ratio = (fullscreen_rect.right - fullscreen_rect.left) as f32
+                    / (fullscreen_rect.bottom - fullscreen_rect.top) as f32;
+            }
+
+            is_fullscreen = !is_fullscreen;
+        }
+
+        sleep_ms!(SLEEP_MS);
     }
 }
 
@@ -74,28 +130,39 @@ fn settings_watcher() {
 }
 
 fn main() {
-    // Read the config and clone references for new threads
-    let config_0 = Arc::new(conf::read(Path::new("chess_titans_rtx.conf")));
-    let config_1 = Arc::clone(&config_0);
+    let default_config = HashMap::from([
+        ("console", Value::Bool(true)),
+        ("fov", Value::F32(30.0)),
+        ("altitude", Value::F32(95.0)),
+        ("constant_tick_patch", Value::Bool(true)),
+        ("settings_override", Value::Bool(true)),
+        ("vkey_fov_up", Value::I32(VK_F.0 as i32)),
+        ("vkey_fov_down", Value::I32(VK_V.0 as i32)),
+        ("vkey_fov_reset", Value::I32(VK_R.0 as i32)),
+        ("vkey_alt_up", Value::I32(VK_G.0 as i32)),
+        ("vkey_alt_down", Value::I32(VK_B.0 as i32)),
+        ("vkey_alt_reset", Value::I32(VK_T.0 as i32)),
+        ("vkey_fullscreen", Value::I32(VK_RETURN.0 as i32)),
+    ]);
+
+    let config = conf::read(Path::new("chess_titans_rtx.conf"), default_config);
 
     // Attach a console so we can print stuff
-    if config_0["console"].unwrap() {
+    if config["console"].unwrap() {
         let _ = unsafe { AllocConsole() };
     }
     println!("Welcome to Chess Titans RTX");
 
     // Thank you Adam :)
-    if config_0["constant_tick_patch"].unwrap() {
+    if config["constant_tick_patch"].unwrap() {
         apply_and_report(&CONSTANT_TICK, true, "Constant Tick - by AdamPlayer");
     }
-    set_fov(config_0["fov"].unwrap());
-    set_altitude(config_0["altitude"].unwrap());
 
     // Continue with new threads to unblock the main thread
-    if config_0["settings_override"].unwrap() {
+    if config["settings_override"].unwrap() {
         thread::spawn(settings_watcher);
     }
-    thread::spawn(move || window_watcher(&config_1));
+    thread::spawn(move || late_init_window_creation(config));
 }
 
 #[allow(unused_variables)]

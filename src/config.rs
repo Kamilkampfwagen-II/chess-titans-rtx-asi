@@ -68,18 +68,7 @@ pub mod conf {
         }
     }
 
-    pub fn read(path: &Path) -> Config {
-        let default_config = HashMap::from([
-            ("console", Value::Bool(true)),
-            ("fov", Value::F32(40.0)),
-            ("altitude", Value::F32(90.0)),
-            ("width", Value::U32(0)),
-            ("height", Value::U32(0)),
-            ("fullscreen", Value::Bool(true)),
-            ("constant_tick_patch", Value::Bool(true)),
-            ("settings_override", Value::Bool(true)),
-        ]);
-
+    pub fn read(path: &Path, default_config: HashMap<&str, Value>) -> Config {
         let ini = Ini::load_from_file(path).unwrap_or_default();
         let default = ini::Properties::default();
         let user_config = ini.section::<String>(None).unwrap_or(&default);
