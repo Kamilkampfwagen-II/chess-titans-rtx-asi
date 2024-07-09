@@ -10,7 +10,7 @@ use windows::core::PCSTR;
 use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
 
 #[repr(C)]
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum ErrorCode {
     Success = 0,
     GeneralFailure = 1,
@@ -48,7 +48,7 @@ pub type PfnRegisterDevice = extern "system" fn();
 
 #[allow(non_snake_case)]
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Clone)]
 pub struct Interface {
     pub initialized: bool,
     pub DebugPrint: MaybeUninit<PfnDebugPrint>,
@@ -124,7 +124,7 @@ pub fn initialize() -> Result<Interface, ErrorCode> {
 
 pub mod remix_api {
     #[repr(C)]
-    #[derive(Debug, Copy, Clone, PartialEq)]
+    #[derive(Debug, Clone, PartialEq)]
     pub enum StructType {
         None = 0,
         InitializeLibraryInfo = 1,
@@ -153,7 +153,7 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct Rect2D {
         pub left: i32,
         pub top: i32,
@@ -162,14 +162,14 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct Float2D {
         pub x: f32,
         pub y: f32,
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct Float3D {
         pub x: f32,
         pub y: f32,
@@ -177,7 +177,7 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct Float4D {
         pub x: f32,
         pub y: f32,
@@ -186,7 +186,7 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct Transform {
         pub matrix: [[f32; 4]; 3],
     }
@@ -207,7 +207,7 @@ pub mod remix_api {
     pub type LightHandle = *mut LightHandleT;
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct MaterialInfo {
         pub s_type: StructType,
         pub hash: u64,
@@ -226,7 +226,7 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct HardcodedVertex {
         pub position: [f32; 3],
         pub normal: [f32; 3],
@@ -242,7 +242,7 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct MeshInfoSurfaceTriangles {
         pub vertices_values: *const HardcodedVertex,
         pub vertices_count: u64,
@@ -253,7 +253,7 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct MeshInfo {
         pub s_type: StructType,
         pub hash: u64,
@@ -262,7 +262,7 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct LightInfoLightShaping {
         pub direction: Float3D,
         pub cone_angle_degrees: f32,
@@ -271,7 +271,7 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct LightInfoSphereExt {
         pub s_type: StructType,
         pub position: Float3D,
@@ -281,7 +281,7 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct LightInfoRectExt {
         pub s_type: StructType,
         pub position: Float3D,
@@ -295,7 +295,7 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct LightInfoDiskExt {
         pub s_type: StructType,
         pub position: Float3D,
@@ -309,7 +309,7 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct LightInfoCylinderExt {
         pub s_type: StructType,
         pub position: Float3D,
@@ -319,7 +319,7 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct LightInfoDistantExt {
         pub s_type: StructType,
         pub direction: Float3D,
@@ -327,7 +327,7 @@ pub mod remix_api {
     }
 
     #[repr(C)]
-    #[derive(Debug, Copy, Clone)]
+    #[derive(Debug, Clone)]
     pub struct LightInfo {
         pub s_type: StructType,
         pub hash: u64,
