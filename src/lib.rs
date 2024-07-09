@@ -18,7 +18,6 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::Path;
 use std::ptr::null;
 use std::thread;
-use std::time::Duration;
 
 use windows::core::PCWSTR;
 use windows::Win32::Foundation::{BOOL, HANDLE, RECT};
@@ -43,35 +42,41 @@ fn bridge_api_madness() {
     println!("RegisterDevice");
     unsafe { api.RegisterDevice.assume_init()() };
 
-    let light_info = LightInfo {
-        s_type: StructType::LightInfo,
-        hash: 12345,
-        radiance: Float3D {
-            x: 10.0,
-            y: 10.0,
-            z: 10.0,
-        },
-    };
+    let mut i: u64 = 0;
+    loop {
+        if is_pressing(VK_Q.0 as i32) {
+            i += 1;
 
-    let distant_light_info = LightInfoDistantExt {
-        s_type: StructType::LightInfoDistantExt,
-        direction: Float3D {
-            x: -0.344255,
-            y: -0.938876,
-            z: 0.0,
-        }, // Fallback light with this direction is visible at all times
-        angular_diameter_degrees: 1.0,
-    };
+            let light_info = LightInfo {
+                s_type: StructType::LightInfo,
+                hash: i,
+                radiance: Float3D {
+                    x: 10.0,
+                    y: 10.0,
+                    z: 10.0,
+                },
+            };
 
-    let handle = unsafe { api.CreateDistantLight.assume_init()(&light_info, &distant_light_info) };
-    println!(
-        "Created a distant light with handle: {} and hash: {}",
-        handle, &light_info.hash
-    );
+            let distant_light_info = LightInfoDistantExt {
+                s_type: StructType::LightInfoDistantExt,
+                direction: Float3D {
+                    x: -0.344255,
+                    y: -0.938876,
+                    z: 0.0,
+                }, // Fallback light with this direction is visible at all times
+                angular_diameter_degrees: 1.0,
+            };
 
-    // Keep a ref just in case
-    thread::sleep(Duration::MAX);
-    println!("{:?}, {:?}", &light_info, &distant_light_info);
+            let handle = unsafe { api.CreateDistantLight.assume_init()(&light_info, &distant_light_info) };
+            println!(
+                "Created a distant light with handle: {} and hash: {}",
+                handle, &light_info.hash
+            );
+            sleep_ms!(500);
+        }
+
+        sleep_ms!(500);
+    }
 }
 
 fn late_init_window_creation(config: Config) {
