@@ -1,3 +1,6 @@
+mod config;
+use config::conf::{self, Config, Unwrap, Value};
+
 mod patch;
 
 mod patches;
@@ -6,10 +9,6 @@ use patches::*;
 #[macro_use]
 mod util;
 use util::*;
-
-mod config;
-use config::conf::{self, Config, Unwrap, Value};
-use windows::Win32::UI::Input::KeyboardAndMouse::*;
 
 use std::collections::HashMap;
 use std::path::Path;
@@ -22,6 +21,7 @@ use windows::Win32::System::Console::AllocConsole;
 use windows::Win32::System::SystemServices::{
     DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH, DLL_THREAD_ATTACH, DLL_THREAD_DETACH,
 };
+use windows::Win32::UI::Input::KeyboardAndMouse::*;
 use windows::Win32::UI::WindowsAndMessaging::FindWindowW;
 
 fn late_init_window_creation(config: Config) {
