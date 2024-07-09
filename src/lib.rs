@@ -45,7 +45,7 @@ fn bridge_api_madness() {
 
     let light_info = LightInfo {
         s_type: StructType::LightInfo,
-        hash: hash(&"light0"),
+        hash: 12345,
         radiance: Float3D {
             x: 10.0,
             y: 10.0,
