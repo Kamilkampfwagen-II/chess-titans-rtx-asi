@@ -104,7 +104,7 @@ pub fn apply_and_report(patch_set: &[Patch], verify: bool, ok_msg: &str) {
 }
 
 pub fn is_pressing(vkey: i32) -> bool {
-    (unsafe { GetAsyncKeyState(vkey) } & i16::MAX) == 1
+    (unsafe { GetAsyncKeyState(vkey) } < 0)
 }
 
 pub fn to_radians(degrees: f32) -> f32 {
