@@ -1,7 +1,8 @@
 pub mod conf {
-    use std::collections::HashMap;
     use ini::Ini;
+    use std::{collections::HashMap, path::Path};
 
+    pub type Config = HashMap<Box<str>, Value>;
 
     #[allow(dead_code)]
     #[derive(Debug)]
@@ -10,7 +11,7 @@ pub mod conf {
         U32(u32),
         F32(f32),
         Bool(bool),
-        String(String),
+        String(Box<str>),
     }
 
     pub trait Unwrap<T> {
@@ -57,56 +58,40 @@ pub mod conf {
         }
     }
 
-    impl Unwrap<String> for Value {
-        fn unwrap(&self) -> String {
+    impl Unwrap<Box<str>> for Value {
+        fn unwrap(&self) -> Box<str> {
             if let Value::String(val) = self {
-                val.to_string()
+                val.to_string().into()
             } else {
                 panic!("Expected String, got a different type")
             }
         }
     }
 
+    pub fn read(path: &Path, default_config: HashMap<&str, Value>) -> Config {
+        let ini = Ini::load_from_file(path).unwrap_or_default();
+        let default = ini::Properties::default();
+        let user_config = ini.section::<String>(None).unwrap_or(&default);
 
-    pub fn read() -> HashMap<String, Value> {
-        let default_config = HashMap::from([
-            ("console"              , Value::Bool(true)),
-
-            ("fov"                  , Value::F32(40.0) ),
-            ("altitude"             , Value::F32(90.0) ),
-
-            ("width"                , Value::U32(0)    ),
-            ("height"               , Value::U32(0)    ),
-            ("fullscreen"           , Value::Bool(true)),
-
-            ("constant_tick_patch"  , Value::Bool(true)),
-            ("settings_override"    , Value::Bool(true)),
-        ]);
-
-        let binding = ini::Properties::default();
-        let ini = Ini::load_from_file("chess_titans_rtx.conf").unwrap_or_default();
-        let user_config = ini.section::<String>(None).unwrap_or(&binding);
-
-        let mut config: HashMap<String, Value> = Default::default();
+        let mut config: Config = Config::default();
         for (k, v) in default_config {
+            let value_str = match user_config.get(k) {
+                Some(v) => v,
+                None => {
+                    config.insert(k.to_owned().into(), v);
+                    continue;
+                } // Fallback to default config
+            };
 
-            let value_str: &str;
-            let result = user_config.get(k);
-            match result {
-                Some(value) => value_str = value,
-                None => { config.insert(k.to_owned(), v); continue; } // Fallback to default config
-            }
+            let value = match v {
+                Value::I32(i) => Value::I32(value_str.parse::<i32>().unwrap_or(i)),
+                Value::U32(i) => Value::U32(value_str.parse::<u32>().unwrap_or(i)),
+                Value::F32(i) => Value::F32(value_str.parse::<f32>().unwrap_or(i)),
+                Value::Bool(i) => Value::Bool(value_str.parse::<bool>().unwrap_or(i)),
+                Value::String(_) => Value::String(value_str.to_owned().into()),
+            };
 
-            let value: Value;
-            match v {
-                Value::I32(i)   => value = Value::I32(value_str.parse::<i32>().unwrap_or(i)  ),
-                Value::U32(i)   => value = Value::U32(value_str.parse::<u32>().unwrap_or(i)  ),
-                Value::F32(i)   => value = Value::F32(value_str.parse::<f32>().unwrap_or(i)  ),
-                Value::Bool(i) => value = Value::Bool(value_str.parse::<bool>().unwrap_or(i)),
-                Value::String(_)     => value = Value::String(value_str.to_owned()),
-            }
-
-            config.insert(k.to_string(), value);
+            config.insert(k.to_string().into(), value);
         }
 
         config

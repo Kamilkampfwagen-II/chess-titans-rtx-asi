@@ -1,167 +1,185 @@
+mod config;
+use config::conf::{self, Config, Unwrap, Value};
+
 mod patch;
 
 mod patches;
-use patches::patches::*;
+use patches::*;
 
-mod helper;
-use helper::helper::*;
-
-mod config;
-use config::conf;
-use config::conf::Unwrap;
+#[macro_use]
+mod util;
+use util::*;
 
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::path::Path;
+use std::ptr::null;
 use std::thread;
-use std::time::Duration;
 
-use windows::Win32::Foundation::{BOOL, HANDLE, HWND, LPARAM};
+use windows::core::PCWSTR;
+use windows::Win32::Foundation::{BOOL, HANDLE, RECT};
 use windows::Win32::System::Console::AllocConsole;
-use windows::Win32::System::SystemServices::{DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH, DLL_THREAD_ATTACH, DLL_THREAD_DETACH};
-use windows::Win32::System::Threading::GetCurrentProcessId;
-use windows::Win32::UI::WindowsAndMessaging::{GetWindowThreadProcessId, EnumWindows};
+use windows::Win32::System::SystemServices::{
+    DLL_PROCESS_ATTACH, DLL_PROCESS_DETACH, DLL_THREAD_ATTACH, DLL_THREAD_DETACH,
+};
+use windows::Win32::UI::Input::KeyboardAndMouse::*;
+use windows::Win32::UI::WindowsAndMessaging::FindWindowW;
 
+fn late_init_window_creation(config: Config) {
+    let hwnd = {
+        let class_name = to_c_utf16("ChessWindowClass");
+        loop {
+            if let Ok(v) = unsafe { FindWindowW(PCWSTR(class_name.as_ptr()), PCWSTR(null())) } {
+                break v;
+            }
+            sleep_ms!(1000);
+        }
+    };
 
-#[no_mangle]
-extern "system" fn enum_windows_proc(hwnd: HWND, l_param: LPARAM) -> BOOL {
-    let mut pid: u32 = 0;
-    unsafe { GetWindowThreadProcessId(hwnd, Some(&mut pid as *mut u32)) };
-    if pid != unsafe { GetCurrentProcessId() } { return BOOL(1); }
-
-    let wclass_name = get_window_class_name(hwnd);
-    if wclass_name != "ChessWindowC" { return  BOOL(1); }
-
-    // This is the window we're looking for
-    unsafe { *(l_param.0 as *mut HWND) = hwnd };
-    return BOOL(0);
-}
-
-
-fn window_watcher(config: &HashMap<String, conf::Value>) {
-    let mut hwnd: HWND = Default::default();
-    loop {
-        let _ = unsafe { EnumWindows(Some(enum_windows_proc),  LPARAM(&mut hwnd as *mut HWND as isize)) }; // This always returns Err() for some reason, so we ignore it
-        if hwnd != Default::default() { break; }
-    }
-    println!("[INFO] - Found Chess Titans window with handle {}", hwnd.0);
+    println!(
+        "[INFO] - Found Chess Titans window with handle {}",
+        hwnd.0 as isize
+    );
 
     disable_maximize(hwnd);
     println!("[INFO] - Disabled maximize button"); // Also un-maximizes the window
 
-    if config.get("fullscreen").unwrap().unwrap() {
-        make_borderless(hwnd);
-        let _ = move_window(hwnd);
-        println!("[INFO] - Enabled borderless window");
+    let mut style = 0;
+    let mut rect: RECT = RECT::default();
+    let mut is_fullscreen = false;
+    let vkey_fullscreen: i32 = config["vkey_fullscreen"].unwrap();
+
+    let mut aspect_ratio = {
+        let rect = get_window_fullscreen_rect(hwnd)
+            .expect("Failed to get display resolution, don't you have a monitor??");
+        (rect.right - rect.left) as f32 / (rect.bottom - rect.top) as f32
+    };
+    let default_fov: f32 = config["fov"].unwrap();
+    let mut fov = default_fov;
+    let vkey_fov_up: i32 = config["vkey_fov_up"].unwrap();
+    let vkey_fov_down: i32 = config["vkey_fov_down"].unwrap();
+    let vkey_fov_reset: i32 = config["vkey_fov_reset"].unwrap();
+    set_fov(default_fov, aspect_ratio);
+
+    // let default_alt: f32 = config["altitude"].unwrap();
+    // let mut alt = default_alt;
+    // let vkey_alt_up: i32 = config["vkey_alt_up"].unwrap();
+    // let vkey_alt_down: i32 = config["vkey_alt_down"].unwrap();
+    // let vkey_alt_reset: i32 = config["vkey_alt_reset"].unwrap();
+
+    const SLEEP_MS: u64 = 50;
+    const STEP: f32 = 100.0 * SLEEP_MS as f32 / 1000.0;
+
+    loop {
+        // FOV
+        if is_pressing(vkey_fov_up) {
+            fov = (fov + STEP).min(175.0);
+            set_fov(fov, aspect_ratio);
+        } else if is_pressing(vkey_fov_down) {
+            fov = (fov - STEP).max(5.0);
+            set_fov(fov, aspect_ratio);
+        } else if is_pressing(vkey_fov_reset) {
+            fov = default_fov;
+            set_fov(fov, aspect_ratio)
+        }
+
+        // // Camera Altitude
+        // if is_pressing(vkey_alt_up) {
+        //     alt = (alt + STEP).min(1000.0);
+        //     set_altitude(alt);
+        // } else if is_pressing(vkey_alt_down) {
+        //     alt = (alt - STEP).max(10.0);
+        //     set_altitude(alt);
+        // } else if is_pressing(vkey_alt_reset) {
+        //     alt = default_alt;
+        //     set_altitude(alt);
+        // }
+
+        // Borderless Fullscreen
+        if is_pressing(vkey_fullscreen) {
+            if is_fullscreen {
+                set_window_properties(hwnd, rect, style)
+                    .expect("Failed to revert back window properties!");
+            } else {
+                style = get_window_style(hwnd).expect("Failed to get window properties!");
+                rect = get_window_rect(hwnd).expect("Failed to get window size!");
+                let fullscreen_rect = get_window_fullscreen_rect(hwnd).unwrap();
+
+                set_window_properties(hwnd, fullscreen_rect, get_borderless_style(style))
+                    .expect("Failed to set window properties!");
+
+                aspect_ratio = (fullscreen_rect.right - fullscreen_rect.left) as f32
+                    / (fullscreen_rect.bottom - fullscreen_rect.top) as f32;
+            }
+
+            is_fullscreen = !is_fullscreen;
+        }
+
+        sleep_ms!(SLEEP_MS);
     }
 }
-
 
 fn settings_watcher() {
-    let patch_address = get_address_by_offset(GRAPHICS_LEVEL_3.get(0).unwrap().offset);
+    let patch = GRAPHICS_LEVEL_3.first().unwrap();
+    let patch_address = get_address_by_offset(patch.offset);
 
     loop {
-        if unsafe { read_from::<u8>(patch_address) } != GRAPHICS_LEVEL_3.get(0).unwrap().new {
+        if unsafe { read_from::<u8>(patch_address) } != patch.new {
             apply_and_report(&GRAPHICS_LEVEL_3, false, "Revert graphics level to 3")
         }
-        thread::sleep(Duration::from_millis(1));
+        sleep_ms!(1000);
     }
 }
-
-
-fn res_watcher(config: &HashMap<String, conf::Value>) { // This is incredibly stupid, but I have no other solution for now
-    const WIDTH_OFFSET: u32 = 0x131154;
-    const HEIGHT_OFFSET: u32 = 0x131158;
-    let width_address = get_address_by_offset(WIDTH_OFFSET);
-    let height_address = get_address_by_offset(HEIGHT_OFFSET);
-
-    let mut width = config.get("width").unwrap().unwrap();
-    let mut height = config.get("height").unwrap().unwrap();
-
-    if width == 0 || height == 0 { 
-        let res = get_display_res().expect("Don't you have a monitor??");
-        width = res[0];
-        height = res[1];
-    }
-    println!("[INFO] - Trying to convince Chess Titans to launch as {}x{}", width, height);
-
-    let mut i = 0;
-    loop {
-        if unsafe { read_from::<u32>(width_address) } != width {
-            i = 0;
-            let _ = unsafe { write_to(width_address , width) };
-        }
-
-        if unsafe { read_from::<u32>(height_address) } != height {
-            i = 0;
-            let _ = unsafe { write_to(height_address, height) };
-        }
-
-        i += 1;
-        if i > 5000 { break; } // No need to continue the loop after the window initialization
-        thread::sleep(Duration::from_millis(1));
-    }
-}
-
 
 fn main() {
-    // Read the config and clone references for new threads
-    let config_0 = Arc::new(conf::read());
-    let config_1 = Arc::clone(&config_0);
-    let config_2 = Arc::clone(&config_0);
+    let default_config = HashMap::from([
+        ("console", Value::Bool(true)),
+        ("fov", Value::F32(30.0)),
+        ("constant_tick_patch", Value::Bool(true)),
+        ("settings_override", Value::Bool(true)),
+        ("vkey_fov_up", Value::I32(VK_F.0 as i32)),
+        ("vkey_fov_down", Value::I32(VK_V.0 as i32)),
+        ("vkey_fov_reset", Value::I32(VK_R.0 as i32)),
+        ("vkey_alt_up", Value::I32(VK_G.0 as i32)),
+        ("vkey_alt_down", Value::I32(VK_B.0 as i32)),
+        ("vkey_alt_reset", Value::I32(VK_T.0 as i32)),
+        ("vkey_fullscreen", Value::I32(VK_RETURN.0 as i32)),
+    ]);
 
+    let config = conf::read(Path::new("chess_titans_rtx.conf"), default_config);
 
     // Attach a console so we can print stuff
-    if config_0.get("console").unwrap().unwrap() {
+    if config["console"].unwrap() {
         let _ = unsafe { AllocConsole() };
     }
     println!("Welcome to Chess Titans RTX");
 
-
     // Thank you Adam :)
-    if config_0.get("constant_tick_patch").unwrap().unwrap() {
-        apply_and_report(&CONSTANT_TICK,    true,   "Constant Tick - by AdamPlayer");
+    if config["constant_tick_patch"].unwrap() {
+        apply_and_report(&CONSTANT_TICK, true, "Constant Tick - by AdamPlayer");
     }
-    set_fov(config_0.get("fov").unwrap().unwrap());
-    set_altitude(config_0.get("altitude").unwrap().unwrap());
 
     // Continue with new threads to unblock the main thread
-    if config_0.get("settings_override").unwrap().unwrap() {
+    if config["settings_override"].unwrap() {
         thread::spawn(settings_watcher);
     }
-    if config_0.get("fullscreen").unwrap().unwrap() {
-        thread::spawn(move || res_watcher(&*config_2)); 
-    }
-    thread::spawn(move || window_watcher(&*config_1));
+    thread::spawn(move || late_init_window_creation(config));
 }
-
 
 #[allow(unused_variables)]
 #[no_mangle]
-extern "system" fn DllMain(
-    dll_module: HANDLE,
-    call_reason: u32,
-    lpv_reserverd: &u32,
-) -> BOOL {
+extern "system" fn DllMain(dll_module: HANDLE, call_reason: u32, lpv_reserverd: &u32) -> BOOL {
     match call_reason {
         DLL_PROCESS_ATTACH => {
             main();
-            return BOOL(1)
+            BOOL(1)
         }
 
-        DLL_PROCESS_DETACH => {
-            return BOOL(1)
-        }
-        
-        DLL_THREAD_ATTACH => {
-            return BOOL(1)
-        }
-        
-        DLL_THREAD_DETACH => {
-            return BOOL(1)
-        }
-        
-        _ => {
-            return BOOL(1)
-        }
+        DLL_PROCESS_DETACH => BOOL(1),
+
+        DLL_THREAD_ATTACH => BOOL(1),
+
+        DLL_THREAD_DETACH => BOOL(1),
+
+        _ => BOOL(1),
     }
 }
