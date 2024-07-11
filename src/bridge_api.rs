@@ -24,51 +24,51 @@ pub enum ErrorCode {
     NotInitialized = 11,
 }
 
-pub type PfnDebugPrint = extern "system" fn(*const c_char);
-pub type PfnCreateTriangleMesh = extern "system" fn(*const MeshInfo) -> u64;
-pub type PfnDrawMeshInstance = extern "system" fn(u64, *const Transform, Bool);
+pub type DebugPrint = extern "system" fn(*const c_char);
+pub type CreateTriangleMesh = extern "system" fn(*const MeshInfo) -> u64;
+pub type DrawMeshInstance = extern "system" fn(u64, *const Transform, Bool);
 
-pub type PfnCreateSphereLight =
+pub type CreateSphereLight =
     extern "system" fn(*const LightInfo, *const LightInfoSphereExt) -> u64;
 
-pub type PfnCreateRectLight = extern "system" fn(*const LightInfo, *const LightInfoRectExt) -> u64;
+pub type CreateRectLight = extern "system" fn(*const LightInfo, *const LightInfoRectExt) -> u64;
 
-pub type PfnCreateDiskLight = extern "system" fn(*const LightInfo, *const LightInfoDiskExt) -> u64;
+pub type CreateDiskLight = extern "system" fn(*const LightInfo, *const LightInfoDiskExt) -> u64;
 
-pub type PfnCreateCylinderLight =
+pub type CreateCylinderLight =
     extern "system" fn(*const LightInfo, *const LightInfoCylinderExt) -> u64;
 
-pub type PfnCreateDistantLight =
+pub type CreateDistantLight =
     extern "system" fn(*const LightInfo, *const LightInfoDistantExt) -> u64;
 
-pub type PfnDestroyLight = extern "system" fn(u64);
-pub type PfnDrawLightInstance = extern "system" fn(u64);
-pub type PfnSetConfigVariable = extern "system" fn(*const c_char, *const c_char);
-pub type PfnRegisterDevice = extern "system" fn();
-pub type PfnEndSceneCallback = extern "C" fn();
-pub type PfnRegisterEndSceneCallback = extern "C" fn(PfnEndSceneCallback);
+pub type DestroyLight = extern "system" fn(u64);
+pub type DrawLightInstance = extern "system" fn(u64);
+pub type SetConfigVariable = extern "system" fn(*const c_char, *const c_char);
+pub type RegisterDevice = extern "system" fn();
+pub type EndSceneCallback = extern "C" fn();
+pub type RegisterEndSceneCallback = extern "C" fn(EndSceneCallback);
 
 #[allow(non_snake_case)]
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub struct Interface {
     pub initialized: bool,
-    pub DebugPrint: MaybeUninit<PfnDebugPrint>,
+    pub DebugPrint: MaybeUninit<DebugPrint>,
     _pad0: MaybeUninit<unsafe extern "system" fn(u64)>,
     _pad1: MaybeUninit<unsafe extern "system" fn(u64)>,
-    pub CreateTriangleMesh: MaybeUninit<PfnCreateTriangleMesh>,
+    pub CreateTriangleMesh: MaybeUninit<CreateTriangleMesh>,
     _pad2: MaybeUninit<unsafe extern "system" fn(u64)>,
-    pub DrawMeshInstance: MaybeUninit<PfnDrawMeshInstance>,
-    pub CreateSphereLight: MaybeUninit<PfnCreateSphereLight>,
-    pub CreateRectLight: MaybeUninit<PfnCreateRectLight>,
-    pub CreateDiskLight: MaybeUninit<PfnCreateDiskLight>,
-    pub CreateCylinderLight: MaybeUninit<PfnCreateCylinderLight>,
-    pub CreateDistantLight: MaybeUninit<PfnCreateDistantLight>,
-    pub DestroyLight: MaybeUninit<PfnDestroyLight>,
-    pub DrawLightInstance: MaybeUninit<PfnDrawLightInstance>,
-    pub SetConfigVariable: MaybeUninit<PfnSetConfigVariable>,
-    pub RegisterDevice: MaybeUninit<PfnRegisterDevice>,
-    pub RegisterEndSceneCallback: MaybeUninit<PfnRegisterEndSceneCallback>,
+    pub DrawMeshInstance: MaybeUninit<DrawMeshInstance>,
+    pub CreateSphereLight: MaybeUninit<CreateSphereLight>,
+    pub CreateRectLight: MaybeUninit<CreateRectLight>,
+    pub CreateDiskLight: MaybeUninit<CreateDiskLight>,
+    pub CreateCylinderLight: MaybeUninit<CreateCylinderLight>,
+    pub CreateDistantLight: MaybeUninit<CreateDistantLight>,
+    pub DestroyLight: MaybeUninit<DestroyLight>,
+    pub DrawLightInstance: MaybeUninit<DrawLightInstance>,
+    pub SetConfigVariable: MaybeUninit<SetConfigVariable>,
+    pub RegisterDevice: MaybeUninit<RegisterDevice>,
+    pub RegisterEndSceneCallback: MaybeUninit<RegisterEndSceneCallback>,
 }
 
 impl Default for Interface {
@@ -95,7 +95,7 @@ impl Default for Interface {
     }
 }
 
-pub type PfnInitFuncs = extern "system" fn(*mut Interface) -> ErrorCode;
+pub type InitFuncs = extern "system" fn(*mut Interface) -> ErrorCode;
 
 pub fn initialize() -> Result<Interface, ErrorCode> {
     let module_name = CString::new("d3d9.dll").unwrap();
@@ -119,11 +119,11 @@ pub fn initialize() -> Result<Interface, ErrorCode> {
         None => return Err(ErrorCode::GetProcAddressFailure),
     };
 
-    let pfn_initialize: PfnInitFuncs = unsafe { mem::transmute(func) };
+    let _initialize: InitFuncs = unsafe { mem::transmute(func) };
 
     let mut bridge_interface = Interface::default();
 
-    let status = pfn_initialize(&mut bridge_interface);
+    let status = _initialize(&mut bridge_interface);
     if status == ErrorCode::Success {
         bridge_interface.initialized = true;
         return Ok(bridge_interface);

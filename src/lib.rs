@@ -1,5 +1,5 @@
 mod bridge_api;
-use bridge_api::{remix_api::*, PfnDrawLightInstance};
+use bridge_api::{remix_api::*, DrawLightInstance};
 
 mod config;
 use config::conf::{self, Config, Unwrap, Value};
@@ -30,7 +30,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::*;
 use windows::Win32::UI::WindowsAndMessaging::FindWindowW;
 
 static LIGHT_HANDLES: Mutex<Vec<u64>> = Mutex::new(Vec::new());
-static mut DRAW_LIGHT_INSTANCE: MaybeUninit<PfnDrawLightInstance> = MaybeUninit::uninit();
+static mut DRAW_LIGHT_INSTANCE: MaybeUninit<DrawLightInstance> = MaybeUninit::uninit();
 
 extern "C" fn on_frame_end() {
     let light_handles = LIGHT_HANDLES.lock().unwrap();
