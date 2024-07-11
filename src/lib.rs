@@ -14,7 +14,6 @@ mod util;
 use util::*;
 
 use std::collections::HashMap;
-use std::hash::{DefaultHasher, Hash, Hasher};
 use std::mem::MaybeUninit;
 use std::path::Path;
 use std::ptr::null;
@@ -41,12 +40,6 @@ extern "C" fn on_frame_end() {
     for handle in light_handles.iter() {
         draw_light_inctance(*handle);
     }
-}
-
-fn hash<T: Hash>(t: &T) -> u64 {
-    let mut s = DefaultHasher::new();
-    t.hash(&mut s);
-    s.finish()
 }
 
 fn bridge_api_madness() {
