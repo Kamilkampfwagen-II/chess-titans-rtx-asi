@@ -30,12 +30,11 @@ use windows::Win32::UI::Input::KeyboardAndMouse::*;
 use windows::Win32::UI::WindowsAndMessaging::FindWindowW;
 
 static LIGHT_HANDLES: Mutex<Vec<u64>> = Mutex::new(Vec::new());
-static mut DRAW_LIGHT_INSTANCE: Mutex<MaybeUninit<PfnDrawLightInstance>> =
-    Mutex::new(MaybeUninit::uninit());
+static mut DRAW_LIGHT_INSTANCE: MaybeUninit<PfnDrawLightInstance> = MaybeUninit::uninit();
 
 extern "C" fn on_frame_end() {
     let light_handles = LIGHT_HANDLES.lock().unwrap();
-    let draw_light_inctance = unsafe { DRAW_LIGHT_INSTANCE.lock().unwrap().assume_init() };
+    let draw_light_inctance = unsafe { DRAW_LIGHT_INSTANCE.assume_init() };
 
     for handle in light_handles.iter() {
         draw_light_inctance(*handle);
@@ -48,8 +47,7 @@ fn bridge_api_madness() {
     let api = bridge_api::initialize().expect("Failed to initialize Bridge API!");
 
     unsafe {
-        let mut draw_light_instance = DRAW_LIGHT_INSTANCE.lock().unwrap();
-        draw_light_instance.write(api.DrawLightInstance.assume_init());
+        DRAW_LIGHT_INSTANCE.write(api.DrawLightInstance.assume_init());
     }
 
     println!("RegisterDevice");
