@@ -27,12 +27,8 @@ pub enum ErrorCode {
 pub type DebugPrint = extern "system" fn(*const c_char);
 pub type CreateTriangleMesh = extern "system" fn(*const MeshInfo) -> u64;
 pub type DrawMeshInstance = extern "system" fn(u64, *const Transform, Bool);
-
-pub type CreateSphereLight =
-    extern "system" fn(*const LightInfo, *const LightInfoSphereExt) -> u64;
-
+pub type CreateSphereLight = extern "system" fn(*const LightInfo, *const LightInfoSphereExt) -> u64;
 pub type CreateRectLight = extern "system" fn(*const LightInfo, *const LightInfoRectExt) -> u64;
-
 pub type CreateDiskLight = extern "system" fn(*const LightInfo, *const LightInfoDiskExt) -> u64;
 
 pub type CreateCylinderLight =
@@ -48,16 +44,65 @@ pub type RegisterDevice = extern "system" fn();
 pub type EndSceneCallback = extern "C" fn();
 pub type RegisterEndSceneCallback = extern "C" fn(EndSceneCallback);
 
+type UnImplementedFnU64 = unsafe extern "system" fn(u64);
+
 #[allow(non_snake_case)]
 #[repr(C)]
 #[derive(Debug, Clone)]
 pub struct Interface {
-    pub initialized: bool,
+    pub DebugPrint: DebugPrint,
+    _pad0: MaybeUninit<UnImplementedFnU64>,
+    _pad1: MaybeUninit<UnImplementedFnU64>,
+    pub CreateTriangleMesh: CreateTriangleMesh,
+    _pad2: MaybeUninit<UnImplementedFnU64>,
+    pub DrawMeshInstance: DrawMeshInstance,
+    pub CreateSphereLight: CreateSphereLight,
+    pub CreateRectLight: CreateRectLight,
+    pub CreateDiskLight: CreateDiskLight,
+    pub CreateCylinderLight: CreateCylinderLight,
+    pub CreateDistantLight: CreateDistantLight,
+    pub DestroyLight: DestroyLight,
+    pub DrawLightInstance: DrawLightInstance,
+    pub SetConfigVariable: SetConfigVariable,
+    pub RegisterDevice: RegisterDevice,
+    pub RegisterEndSceneCallback: RegisterEndSceneCallback,
+}
+
+impl From<InterfaceInternal> for Interface {
+    fn from(internal: InterfaceInternal) -> Self {
+        unsafe {
+            Self {
+                DebugPrint: internal.DebugPrint.assume_init(),
+                _pad0: MaybeUninit::uninit(),
+                _pad1: MaybeUninit::uninit(),
+                CreateTriangleMesh: internal.CreateTriangleMesh.assume_init(),
+                _pad2: MaybeUninit::uninit(),
+                DrawMeshInstance: internal.DrawMeshInstance.assume_init(),
+                CreateSphereLight: internal.CreateSphereLight.assume_init(),
+                CreateRectLight: internal.CreateRectLight.assume_init(),
+                CreateDiskLight: internal.CreateDiskLight.assume_init(),
+                CreateCylinderLight: internal.CreateCylinderLight.assume_init(),
+                CreateDistantLight: internal.CreateDistantLight.assume_init(),
+                DestroyLight: internal.DestroyLight.assume_init(),
+                DrawLightInstance: internal.DrawLightInstance.assume_init(),
+                SetConfigVariable: internal.SetConfigVariable.assume_init(),
+                RegisterDevice: internal.RegisterDevice.assume_init(),
+                RegisterEndSceneCallback: internal.RegisterEndSceneCallback.assume_init(),
+            }
+        }
+    }
+}
+
+#[allow(non_snake_case)]
+#[repr(C)]
+#[derive(Debug, Clone)]
+struct InterfaceInternal {
+    _pad0: bool,
     pub DebugPrint: MaybeUninit<DebugPrint>,
-    _pad0: MaybeUninit<unsafe extern "system" fn(u64)>,
-    _pad1: MaybeUninit<unsafe extern "system" fn(u64)>,
+    _pad1: MaybeUninit<UnImplementedFnU64>,
+    _pad2: MaybeUninit<UnImplementedFnU64>,
     pub CreateTriangleMesh: MaybeUninit<CreateTriangleMesh>,
-    _pad2: MaybeUninit<unsafe extern "system" fn(u64)>,
+    _pad3: MaybeUninit<UnImplementedFnU64>,
     pub DrawMeshInstance: MaybeUninit<DrawMeshInstance>,
     pub CreateSphereLight: MaybeUninit<CreateSphereLight>,
     pub CreateRectLight: MaybeUninit<CreateRectLight>,
@@ -71,15 +116,15 @@ pub struct Interface {
     pub RegisterEndSceneCallback: MaybeUninit<RegisterEndSceneCallback>,
 }
 
-impl Default for Interface {
+impl Default for InterfaceInternal {
     fn default() -> Self {
         Self {
-            initialized: false,
+            _pad0: false,
             DebugPrint: MaybeUninit::uninit(),
-            _pad0: MaybeUninit::uninit(),
             _pad1: MaybeUninit::uninit(),
-            CreateTriangleMesh: MaybeUninit::uninit(),
             _pad2: MaybeUninit::uninit(),
+            CreateTriangleMesh: MaybeUninit::uninit(),
+            _pad3: MaybeUninit::uninit(),
             DrawMeshInstance: MaybeUninit::uninit(),
             CreateSphereLight: MaybeUninit::uninit(),
             CreateRectLight: MaybeUninit::uninit(),
@@ -95,7 +140,7 @@ impl Default for Interface {
     }
 }
 
-pub type InitFuncs = extern "system" fn(*mut Interface) -> ErrorCode;
+type InitFuncs = extern "system" fn(*mut InterfaceInternal) -> ErrorCode;
 
 pub fn initialize() -> Result<Interface, ErrorCode> {
     let module_name = CString::new("d3d9.dll").unwrap();
@@ -114,19 +159,15 @@ pub fn initialize() -> Result<Interface, ErrorCode> {
         Err(_) => return Err(ErrorCode::GetModuleHandleFailure),
     };
 
-    let func = match unsafe { GetProcAddress(h_module, proc_name_ptr) } {
-        Some(v) => v,
+    let _initialize: InitFuncs = match unsafe { GetProcAddress(h_module, proc_name_ptr) } {
+        Some(v) => unsafe { mem::transmute(v) },
         None => return Err(ErrorCode::GetProcAddressFailure),
     };
 
-    let _initialize: InitFuncs = unsafe { mem::transmute(func) };
-
-    let mut bridge_interface = Interface::default();
-
-    let status = _initialize(&mut bridge_interface);
+    let mut interface_internal = InterfaceInternal::default();
+    let status = _initialize(&mut interface_internal);
     if status == ErrorCode::Success {
-        bridge_interface.initialized = true;
-        return Ok(bridge_interface);
+        return Ok(Interface::from(interface_internal));
     }
 
     Err(status)

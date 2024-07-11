@@ -47,14 +47,14 @@ fn bridge_api_madness() {
     let api = bridge_api::initialize().expect("Failed to initialize Bridge API!");
 
     unsafe {
-        DRAW_LIGHT_INSTANCE.write(api.DrawLightInstance.assume_init());
+        DRAW_LIGHT_INSTANCE.write(api.DrawLightInstance);
     }
 
     println!("RegisterDevice");
-    unsafe { api.RegisterDevice.assume_init()() };
+    (api.RegisterDevice)();
 
     println!("Register EndFrame callback");
-    unsafe { api.RegisterEndSceneCallback.assume_init()(on_frame_end) };
+    (api.RegisterEndSceneCallback)(on_frame_end);
 
     let mut i: u64 = 0;
     loop {
@@ -81,8 +81,7 @@ fn bridge_api_madness() {
                 angular_diameter_degrees: 1.0,
             };
 
-            let handle =
-                unsafe { api.CreateDistantLight.assume_init()(&light_info, &distant_light_info) };
+            let handle = (api.CreateDistantLight)(&light_info, &distant_light_info);
             println!(
                 "Created a distant light with handle: {} and hash: {}",
                 handle, &light_info.hash
