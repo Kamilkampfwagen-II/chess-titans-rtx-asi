@@ -1,5 +1,5 @@
 mod bridge_api;
-use bridge_api::remix_api::*;
+use bridge_api::{remix_api::*, PfnDrawLightInstance};
 
 mod config;
 use config::conf::{self, Config, Unwrap, Value};
@@ -15,8 +15,10 @@ use util::*;
 
 use std::collections::HashMap;
 use std::hash::{DefaultHasher, Hash, Hasher};
+use std::mem::MaybeUninit;
 use std::path::Path;
 use std::ptr::null;
+use std::sync::Mutex;
 use std::thread;
 
 use windows::core::PCWSTR;
@@ -27,6 +29,19 @@ use windows::Win32::System::SystemServices::{
 };
 use windows::Win32::UI::Input::KeyboardAndMouse::*;
 use windows::Win32::UI::WindowsAndMessaging::FindWindowW;
+
+static LIGHT_HANDLES: Mutex<Vec<u64>> = Mutex::new(Vec::new());
+static mut DRAW_LIGHT_INSTANCE: Mutex<MaybeUninit<PfnDrawLightInstance>> =
+    Mutex::new(MaybeUninit::uninit());
+
+extern "C" fn on_frame_end() {
+    let light_handles = LIGHT_HANDLES.lock().unwrap();
+    let draw_light_inctance = unsafe { DRAW_LIGHT_INSTANCE.lock().unwrap().assume_init() };
+
+    for handle in light_handles.iter() {
+        draw_light_inctance(*handle);
+    }
+}
 
 fn hash<T: Hash>(t: &T) -> u64 {
     let mut s = DefaultHasher::new();
@@ -39,8 +54,16 @@ fn bridge_api_madness() {
 
     let api = bridge_api::initialize().expect("Failed to initialize Bridge API!");
 
+    unsafe {
+        let mut draw_light_instance = DRAW_LIGHT_INSTANCE.lock().unwrap();
+        draw_light_instance.write(api.DrawLightInstance.assume_init());
+    }
+
     println!("RegisterDevice");
     unsafe { api.RegisterDevice.assume_init()() };
+
+    println!("Register EndFrame callback");
+    unsafe { api.RegisterEndSceneCallback.assume_init()(on_frame_end) };
 
     let mut i: u64 = 0;
     loop {
@@ -67,11 +90,16 @@ fn bridge_api_madness() {
                 angular_diameter_degrees: 1.0,
             };
 
-            let handle = unsafe { api.CreateDistantLight.assume_init()(&light_info, &distant_light_info) };
+            let handle =
+                unsafe { api.CreateDistantLight.assume_init()(&light_info, &distant_light_info) };
             println!(
                 "Created a distant light with handle: {} and hash: {}",
                 handle, &light_info.hash
             );
+
+            let mut light_handles = LIGHT_HANDLES.lock().unwrap();
+            light_handles.push(handle);
+
             sleep_ms!(500);
         }
 

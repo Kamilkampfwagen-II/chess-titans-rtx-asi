@@ -45,6 +45,8 @@ pub type PfnDestroyLight = extern "system" fn(u64);
 pub type PfnDrawLightInstance = extern "system" fn(u64);
 pub type PfnSetConfigVariable = extern "system" fn(*const c_char, *const c_char);
 pub type PfnRegisterDevice = extern "system" fn();
+pub type PfnEndSceneCallback = extern "C" fn();
+pub type PfnRegisterEndSceneCallback = extern "C" fn(PfnEndSceneCallback);
 
 #[allow(non_snake_case)]
 #[repr(C)]
@@ -66,26 +68,8 @@ pub struct Interface {
     pub DrawLightInstance: MaybeUninit<PfnDrawLightInstance>,
     pub SetConfigVariable: MaybeUninit<PfnSetConfigVariable>,
     pub RegisterDevice: MaybeUninit<PfnRegisterDevice>,
+    pub RegisterEndSceneCallback: MaybeUninit<PfnRegisterEndSceneCallback>,
 }
-
-// typedef struct bridgeapi_Interface {
-//     bool initialized;
-//     PFN_bridgeapi_DebugPrint           DebugPrint;            // const char* text
-//     PFN_bridgeapi_CreateOpaqueMaterial CreateOpaqueMaterial;  // x86::remixapi_MaterialInfo* info
-//     PFN_bridgeapi_DestroyMaterial      DestroyMaterial;       // uint64_t handle
-//     PFN_bridgeapi_CreateTriangleMesh   CreateTriangleMesh;    // x86::remixapi_MeshInfo* info
-//     PFN_bridgeapi_DestroyMesh          DestroyMesh;           // uint64_t handle
-//     PFN_bridgeapi_DrawMeshInstance     DrawMeshInstance;      // uint64_t handle --- x86::remixapi_Transform* t --- x86::remixapi_Bool double_sided
-//     PFN_bridgeapi_CreateSphereLight    CreateSphereLight;     // x86::remixapi_LightInfo* info --- x86::remixapi_LightInfoSphereEXT* sphere_info
-//     PFN_bridgeapi_CreateRectLight      CreateRectLight;       // x86::remixapi_LightInfo* info --- x86::remixapi_LightInfoRectEXT* rect_info
-//     PFN_bridgeapi_CreateDiskLight      CreateDiskLight;       // x86::remixapi_LightInfo* info --- x86::remixapi_LightInfoDiskEXT* disk_info
-//     PFN_bridgeapi_CreateCylinderLight  CreateCylinderLight;   // x86::remixapi_LightInfo* info --- x86::remixapi_LightInfoCylinderEXT* cylinder_info
-//     PFN_bridgeapi_CreateDistantLight   CreateDistantLight;    // x86::remixapi_LightInfo* info --- x86::remixapi_LightInfoDistantEXT* dist_info
-//     PFN_bridgeapi_DestroyLight         DestroyLight;          // uint64_t handle
-//     PFN_bridgeapi_DrawLightInstance    DrawLightInstance;     // uint64_t handle
-//     PFN_bridgeapi_SetConfigVariable    SetConfigVariable;     // const char* var --- const char* value
-//     PFN_bridgeapi_RegisterDevice       RegisterDevice;        // void
-//   } bridgeapi_Interf
 
 impl Default for Interface {
     fn default() -> Self {
@@ -106,6 +90,7 @@ impl Default for Interface {
             DrawLightInstance: MaybeUninit::uninit(),
             SetConfigVariable: MaybeUninit::uninit(),
             RegisterDevice: MaybeUninit::uninit(),
+            RegisterEndSceneCallback: MaybeUninit::uninit(),
         }
     }
 }
